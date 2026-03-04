@@ -38,6 +38,8 @@ export default function RegisterPage() {
 
     const [fullName, setFullName] = useState("");
     const [phone, setPhone] = useState("");
+    const [email, setEmail] = useState("");
+    const [addressDetail, setAddressDetail] = useState("");
     const [province, setProvince] = useState("");
     const [district, setDistrict] = useState("");
     const [ward, setWard] = useState("");
@@ -134,6 +136,7 @@ export default function RegisterPage() {
 
     const validateForm = (): boolean => {
         const errors: Record<string, string> = {};
+        const emailRegex = /^\S+@\S+\.\S+$/;
         const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
 
         if (!phone.trim()) {
@@ -146,6 +149,12 @@ export default function RegisterPage() {
             errors.fullName = "Vui lòng nhập họ tên";
         } else if (fullName.trim().length < 2 || fullName.trim().length > 100) {
             errors.fullName = "Họ tên phải từ 2 đến 100 ký tự";
+        }
+
+        if (!email.trim()) {
+            errors.email = "Vui lòng nhập email";
+        } else if (!emailRegex.test(email.trim())) {
+            errors.email = "Email không đúng định dạng";
         }
 
         if (!province) errors.province = "Vui lòng chọn Tỉnh / Thành phố";
@@ -193,6 +202,7 @@ export default function RegisterPage() {
 
             await registerUser({
                 phone: phone.trim(),
+                email: email.trim(),
                 name: fullName.trim(),
                 password: password.trim(),
                 confirmPassword: confirmPassword.trim(),
@@ -202,6 +212,7 @@ export default function RegisterPage() {
                 districtName: selectedDistrict.name,
                 wardCode: String(selectedWard.code),
                 wardName: selectedWard.name,
+                addressDetail: addressDetail.trim() || undefined,
             });
 
             router.push("/login");
@@ -257,6 +268,23 @@ export default function RegisterPage() {
                         />
                         {fieldErrors.fullName && (
                             <p className="text-xs text-destructive">{fieldErrors.fullName}</p>
+                        )}
+                    </div>
+
+                    <div className="space-y-2">
+                        <label htmlFor="email" className="required text-sm font-medium">
+                            Email
+                        </label>
+                        <Input
+                            id="email"
+                            type="email"
+                            value={email}
+                            onChange={(event) => setEmail(event.target.value)}
+                            placeholder="Nhập email"
+                            required
+                        />
+                        {fieldErrors.email && (
+                            <p className="text-xs text-destructive">{fieldErrors.email}</p>
                         )}
                     </div>
 
@@ -319,6 +347,18 @@ export default function RegisterPage() {
                         {fieldErrors.ward && (
                             <p className="text-xs text-destructive">{fieldErrors.ward}</p>
                         )}
+                    </div>
+
+                    <div className="space-y-2">
+                        <label htmlFor="addressDetail" className="text-sm font-medium">
+                            Địa chỉ chi tiết
+                        </label>
+                        <Input
+                            id="addressDetail"
+                            value={addressDetail}
+                            onChange={(event) => setAddressDetail(event.target.value)}
+                            placeholder="Ví dụ: Số nhà, tên đường..."
+                        />
                     </div>
 
                     <div className="space-y-2">

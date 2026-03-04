@@ -3,6 +3,7 @@ const API_BASE_URL =
 
 export type RegisterPayload = {
 	phone: string;
+	email: string;
 	password: string;
 	confirmPassword: string;
 	name: string;
