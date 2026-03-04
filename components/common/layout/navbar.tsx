@@ -15,25 +15,41 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { SelectGroup, SelectLabel } from "@radix-ui/react-select";
-import { getAccessToken } from "@/lib/auth-token";
+import { authTokenChangedEventName, isLoggedIn as hasAccessToken } from "@/lib/auth-token";
+import Menubar from "@/components/common/layout/menubar";
 
 export default function Navbar() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     useEffect(() => {
-        setIsLoggedIn(Boolean(getAccessToken()));
+        const syncAuthState = () => {
+            setIsLoggedIn(hasAccessToken());
+        };
+
+        syncAuthState();
+        window.addEventListener("storage", syncAuthState);
+        window.addEventListener(authTokenChangedEventName, syncAuthState);
+
+        return () => {
+            window.removeEventListener("storage", syncAuthState);
+            window.removeEventListener(authTokenChangedEventName, syncAuthState);
+        };
     }, []);
 
     return (
         <header>
             <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-4">
+                <div className="flex items-center">
+                    <Menubar />
+                </div>
+
                 <div className="flex min-w-0 flex-1 items-center gap-3">
                     <Link href="/" className="shrink-0" aria-label="LandGo Home">
                         <Image src="/logo-landgo.png" alt="LandGo" width={96} height={32} priority className="h-8 w-auto" />
                     </Link>
 
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <div className="hidden min-w-0 flex-1 items-center gap-2 md:flex">
                         <div className="relative min-w-0 flex-1">
                             <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
                             <Input className="pl-9" placeholder="Tìm kiếm bất động sản" aria-label="Search estates" />
@@ -54,7 +70,7 @@ export default function Navbar() {
                     </div>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="hidden shrink-0 items-center gap-2 md:flex">
                     {isLoggedIn ? (
                         <div className="relative">
                             <Button

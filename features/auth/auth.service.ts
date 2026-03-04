@@ -1,5 +1,6 @@
 import axiosClient from "@/lib/axios";
 import { setAccessToken } from "@/lib/auth-token";
+import { AxiosError } from "axios";
 
 const API_BASE_URL =
 	process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:9999/api/v1";
@@ -71,12 +72,18 @@ export const registerUser = async (
 };
 
 export const loginUser = async (payload: LoginPayload): Promise<LoginResponse> => {
-	const response = await axiosClient.post<LoginResponse>("/auth/login", payload);
-    console.log("Login response:", response.data);
-	if (!response.data?.success) {
-		throw new Error(response.data?.message || "Đăng nhập thất bại");
-	}
+	try {
+		const response = await axiosClient.post<LoginResponse>("/auth/login", payload);
 
-	setAccessToken(response.data.data.accessToken);
-	return response.data;
+		if (!response.data?.success) {
+			throw new Error(response.data?.message || "Đăng nhập thất bại");
+		}
+
+		setAccessToken(response.data.data.accessToken);
+		return response.data;
+	} catch (error) {
+		const axiosError = error as AxiosError<{ message?: string }>;
+		const backendMessage = axiosError.response?.data?.message;
+		throw new Error(backendMessage || "Đăng nhập thất bại");
+	}
 };
