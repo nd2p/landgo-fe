@@ -222,7 +222,7 @@ export default function RegisterPage() {
                 throw new Error("Không tìm thấy thông tin địa chỉ đã chọn");
             }
 
-            await registerUser({
+            const response = await registerUser({
                 phone: phone.trim(),
                 email: email.trim(),
                 name: fullName.trim(),
@@ -237,7 +237,12 @@ export default function RegisterPage() {
                 addressDetail: addressDetail.trim() || undefined,
             });
 
-            router.push("/login");
+            const query = new URLSearchParams({
+                email: email.trim(),
+                expiresInSeconds: String(response.data.emailOtpExpiresInSeconds ?? 60),
+            });
+
+            router.push(`/verify-email?${query.toString()}`);
         } catch (error) {
             console.error(error);
             setSubmitError(

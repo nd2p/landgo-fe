@@ -22,11 +22,37 @@ export type LoginPayload = {
 	phone: string;
 	password: string;
 };
+
+export type ForgotPasswordPayload = {
+	email: string;
+};
+
+export type ResetPasswordWithOtpPayload = {
+	email: string;
+	otp: string;
+	password: string;
+	confirmPassword: string;
+};
+
+export type VerifyEmailOtpPayload = {
+	email: string;
+	otp: string;
+};
+
 type RegisterResponse = {
 	success: boolean;
 	message: string;
 	data: {
 		userId: string;
+		emailOtpExpiresInSeconds?: number;
+	};
+};
+
+type BasicAuthResponse = {
+	success: boolean;
+	message: string;
+	data?: {
+		expiresInSeconds?: number;
 	};
 };
 
@@ -95,5 +121,68 @@ export const logoutUser = async (): Promise<void> => {
 		throw new Error(backendMessage || "Đăng xuất thất bại");
 	} finally {
 		removeAccessToken();
+	}
+};
+
+export const requestPasswordResetOtp = async (
+	payload: ForgotPasswordPayload
+): Promise<BasicAuthResponse> => {
+	try {
+		const response = await axiosClient.post<BasicAuthResponse>(
+			"/auth/forgot-password",
+			payload
+		);
+
+		if (!response.data?.success) {
+			throw new Error(response.data?.message || "Gửi mã OTP thất bại");
+		}
+
+		return response.data;
+	} catch (error) {
+		const axiosError = error as AxiosError<{ message?: string }>;
+		const backendMessage = axiosError.response?.data?.message;
+		throw new Error(backendMessage || "Gửi mã OTP thất bại");
+	}
+};
+
+export const resetPasswordWithOtp = async (
+	payload: ResetPasswordWithOtpPayload
+): Promise<BasicAuthResponse> => {
+	try {
+		const response = await axiosClient.post<BasicAuthResponse>(
+			"/auth/reset-password-otp",
+			payload
+		);
+
+		if (!response.data?.success) {
+			throw new Error(response.data?.message || "Đổi mật khẩu thất bại");
+		}
+
+		return response.data;
+	} catch (error) {
+		const axiosError = error as AxiosError<{ message?: string }>;
+		const backendMessage = axiosError.response?.data?.message;
+		throw new Error(backendMessage || "Đổi mật khẩu thất bại");
+	}
+};
+
+export const verifyEmailOtp = async (
+	payload: VerifyEmailOtpPayload
+): Promise<BasicAuthResponse> => {
+	try {
+		const response = await axiosClient.post<BasicAuthResponse>(
+			"/auth/verify-email-otp",
+			payload
+		);
+
+		if (!response.data?.success) {
+			throw new Error(response.data?.message || "Xác thực email thất bại");
+		}
+
+		return response.data;
+	} catch (error) {
+		const axiosError = error as AxiosError<{ message?: string }>;
+		const backendMessage = axiosError.response?.data?.message;
+		throw new Error(backendMessage || "Xác thực email thất bại");
 	}
 };

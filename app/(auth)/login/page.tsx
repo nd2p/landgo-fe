@@ -139,6 +139,11 @@ export default function LoginPage() {
                                 )}
                             </button>
                         </div>
+                        <p className="text-right text-sm">
+                            <Link href="/forgot-password" className="font-medium text-primary underline">
+                                Quên mật khẩu?
+                            </Link>
+                        </p>
                     </div>
 
                     {errorMessage && (
