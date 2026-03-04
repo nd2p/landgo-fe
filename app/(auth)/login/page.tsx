@@ -1,14 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
-import { isValidPhoneNumber } from "libphonenumber-js";
+import { parsePhoneNumberFromString } from "libphonenumber-js";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { loginUser } from "@/features/auth/auth.service";
+import { getAuthenticatedRedirectPath } from "@/lib/auth-bootstrap";
+import { getHomePathByRole } from "@/lib/auth-role";
+
+const isStrictValidVietnamPhone = (value: string): boolean => {
+    const parsed = parsePhoneNumberFromString(value.trim(), "VN");
+    return !!parsed && parsed.isValid() && parsed.country === "VN";
+};
 
 export default function LoginPage() {
     const router = useRouter();
@@ -17,6 +24,22 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+    useEffect(() => {
+        const guardAuthPage = async () => {
+            const redirectPath = await getAuthenticatedRedirectPath();
+
+            if (redirectPath) {
+                router.replace(redirectPath);
+                return;
+            }
+
+            setIsCheckingAuth(false);
+        };
+
+        void guardAuthPage();
+    }, [router]);
 
     const validateForm = (): boolean => {
         if (!phone.trim()) {
@@ -24,7 +47,7 @@ export default function LoginPage() {
             return false;
         }
 
-        if (!isValidPhoneNumber(phone.trim(), "VN")) {
+        if (!isStrictValidVietnamPhone(phone)) {
             setErrorMessage("Số điện thoại không đúng định dạng Việt Nam");
             return false;
         }
@@ -44,11 +67,13 @@ export default function LoginPage() {
 
         try {
             setIsSubmitting(true);
-            await loginUser({
+            const response = await loginUser({
                 phone: phone.trim(),
                 password,
             });
-            router.push("/");
+
+            const redirectPath = getHomePathByRole(response.data.user.role);
+            router.push(redirectPath);
         } catch (error) {
             setErrorMessage(
                 error instanceof Error ? error.message : "Đăng nhập thất bại"
@@ -57,6 +82,10 @@ export default function LoginPage() {
             setIsSubmitting(false);
         }
     };
+
+    if (isCheckingAuth) {
+        return null;
+    }
 
     return (
         <section className="bg-muted/30 py-10 md:py-14">

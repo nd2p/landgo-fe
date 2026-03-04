@@ -1,12 +1,11 @@
 import axiosClient from "@/lib/axios";
-import { setAccessToken } from "@/lib/auth-token";
+import { removeAccessToken, setAccessToken } from "@/lib/auth-token";
 import { AxiosError } from "axios";
-
-const API_BASE_URL =
-	process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:9999/api/v1";
+import type { AuthRole } from "@/lib/auth-role";
 
 export type RegisterPayload = {
 	phone: string;
+	email: string;
 	password: string;
 	confirmPassword: string;
 	name: string;
@@ -23,7 +22,6 @@ export type LoginPayload = {
 	phone: string;
 	password: string;
 };
-
 type RegisterResponse = {
 	success: boolean;
 	message: string;
@@ -32,7 +30,7 @@ type RegisterResponse = {
 	};
 };
 
-type LoginResponse = {
+export type LoginResponse = {
 	success: boolean;
 	message: string;
 	data: {
@@ -40,35 +38,29 @@ type LoginResponse = {
 		user: {
 			id: string;
 			name: string;
-			email: string;
+			email: string | null;
 			phone: string;
-			role: string;
+			role: AuthRole;
 			avatar: string | null;
 		};
 	};
 };
-
 export const registerUser = async (
 	payload: RegisterPayload
 ): Promise<RegisterResponse> => {
-	const response = await fetch(`${API_BASE_URL}/auth/register`, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify(payload),
-		credentials: "include",
-	});
+	try {
+		const response = await axiosClient.post<RegisterResponse>("/auth/register", payload);
 
-	const data = (await response.json()) as
-		| RegisterResponse
-		| { success?: boolean; message?: string };
+		if (!response.data?.success) {
+			throw new Error(response.data?.message || "Đăng ký thất bại");
+		}
 
-	if (!response.ok || !data.success) {
-		throw new Error(data.message || "Đăng ký thất bại");
+		return response.data;
+	} catch (error) {
+		const axiosError = error as AxiosError<{ message?: string }>;
+		const backendMessage = axiosError.response?.data?.message;
+		throw new Error(backendMessage || "Đăng ký thất bại");
 	}
-
-	return data as RegisterResponse;
 };
 
 export const loginUser = async (payload: LoginPayload): Promise<LoginResponse> => {
@@ -85,5 +77,23 @@ export const loginUser = async (payload: LoginPayload): Promise<LoginResponse> =
 		const axiosError = error as AxiosError<{ message?: string }>;
 		const backendMessage = axiosError.response?.data?.message;
 		throw new Error(backendMessage || "Đăng nhập thất bại");
+	}
+};
+
+export const logoutUser = async (): Promise<void> => {
+	try {
+		const response = await axiosClient.post<{ success?: boolean; message?: string }>(
+			"/auth/logout"
+		);
+
+		if (!response.data?.success) {
+			throw new Error(response.data?.message || "Đăng xuất thất bại");
+		}
+	} catch (error) {
+		const axiosError = error as AxiosError<{ message?: string }>;
+		const backendMessage = axiosError.response?.data?.message;
+		throw new Error(backendMessage || "Đăng xuất thất bại");
+	} finally {
+		removeAccessToken();
 	}
 };

@@ -17,10 +17,12 @@ import {
 import { SelectGroup, SelectLabel } from "@radix-ui/react-select";
 import { authTokenChangedEventName, isLoggedIn as hasAccessToken } from "@/lib/auth-token";
 import Menubar from "@/components/common/layout/menubar";
+import { logoutUser } from "@/features/auth/auth.service";
 
 export default function Navbar() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     useEffect(() => {
         const syncAuthState = () => {
@@ -36,6 +38,18 @@ export default function Navbar() {
             window.removeEventListener(authTokenChangedEventName, syncAuthState);
         };
     }, []);
+
+    const handleLogout = async () => {
+        if (isLoggingOut) return;
+
+        try {
+            setIsLoggingOut(true);
+            await logoutUser();
+            setIsMenuOpen(false);
+        } finally {
+            setIsLoggingOut(false);
+        }
+    };
 
     return (
         <header>
@@ -85,8 +99,10 @@ export default function Navbar() {
                                     <button
                                         type="button"
                                         className="w-full rounded-sm px-2 py-1 text-left text-sm hover:bg-accent"
+                                        onClick={handleLogout}
+                                        disabled={isLoggingOut}
                                     >
-                                        Logout
+                                        {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
                                     </button>
                                 </div>
                             )}

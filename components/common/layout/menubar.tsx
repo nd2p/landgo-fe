@@ -22,6 +22,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { authTokenChangedEventName, isLoggedIn as hasAccessToken } from "@/lib/auth-token";
+import { logoutUser } from "@/features/auth/auth.service";
 
 const MENU_ITEMS = [
     { label: "Mua bán", icon: Building2 },
@@ -49,6 +50,7 @@ const USER_MENU_ITEMS = [
 export default function Menubar() {
     const [open, setOpen] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
 
     useEffect(() => {
         const syncAuthState = () => {
@@ -64,6 +66,18 @@ export default function Menubar() {
             window.removeEventListener(authTokenChangedEventName, syncAuthState);
         };
     }, []);
+
+    const handleLogout = async () => {
+        if (isLoggingOut) return;
+
+        try {
+            setIsLoggingOut(true);
+            await logoutUser();
+            setOpen(false);
+        } finally {
+            setIsLoggingOut(false);
+        }
+    };
 
     return (
         <>
@@ -169,8 +183,10 @@ export default function Menubar() {
                                 <button
                                     type="button"
                                     className="block w-full border-t px-5 py-4 text-left text-base font-semibold leading-6"
+                                    onClick={handleLogout}
+                                    disabled={isLoggingOut}
                                 >
-                                    Đăng xuất
+                                    {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
                                 </button>
                             </div>
                         ) : null}
