@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -14,8 +15,16 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { SelectGroup, SelectLabel } from "@radix-ui/react-select";
+import { getAccessToken } from "@/lib/auth-token";
 
 export default function Navbar() {
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    useEffect(() => {
+        setIsLoggedIn(Boolean(getAccessToken()));
+    }, []);
+
     return (
         <header>
             <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-4">
@@ -46,12 +55,36 @@ export default function Navbar() {
                 </div>
 
                 <div className="flex shrink-0 items-center gap-2">
-                    <Button variant="outline">
-                        <Link href="/login">Đăng nhập</Link>
-                    </Button>
-                    <Button asChild variant="outline">
-                        <Link href="/register">Đăng ký</Link>
-                    </Button>
+                    {isLoggedIn ? (
+                        <div className="relative">
+                            <Button
+                                variant="outline"
+                                type="button"
+                                onClick={() => setIsMenuOpen((previous) => !previous)}
+                            >
+                                Tài khoản
+                            </Button>
+                            {isMenuOpen && (
+                                <div className="absolute right-0 z-50 mt-2 min-w-28 rounded-md border bg-card p-2 shadow-md">
+                                    <button
+                                        type="button"
+                                        className="w-full rounded-sm px-2 py-1 text-left text-sm hover:bg-accent"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <>
+                            <Button asChild variant="outline">
+                                <Link href="/login">Đăng nhập</Link>
+                            </Button>
+                            <Button asChild variant="outline">
+                                <Link href="/register">Đăng ký</Link>
+                            </Button>
+                        </>
+                    )}
                     <Button asChild>
                         <Link href="/estates/create">Đăng tin</Link>
                     </Button>
