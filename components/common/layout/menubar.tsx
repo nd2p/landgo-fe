@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
     BadgeDollarSign,
     Building2,
@@ -48,6 +49,7 @@ const USER_MENU_ITEMS = [
 ];
 
 export default function Menubar() {
+    const router = useRouter();
     const [open, setOpen] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -73,9 +75,12 @@ export default function Menubar() {
         try {
             setIsLoggingOut(true);
             await logoutUser();
-            setOpen(false);
+        } catch {
+            // ignore logout API error and still force redirect to login
         } finally {
+            setOpen(false);
             setIsLoggingOut(false);
+            router.replace("/login");
         }
     };
 

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,10 +13,11 @@ import {
 	resetPasswordWithOtp,
 } from "@/features/auth/auth.service";
 import { getAuthenticatedRedirectPath } from "@/lib/auth-bootstrap";
+import {
+	type ResetPasswordFormValues,
+	resetPasswordSchema,
+} from "@/features/auth/auth.validation";
 
-const EMAIL_REGEX = /^\S+@\S+\.\S+$/;
-const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
-const OTP_REGEX = /^\d{6}$/;
 const DEFAULT_OTP_EXPIRES_SECONDS = 10 * 60;
 
 export default function ForgotPasswordPage() {
@@ -23,15 +26,26 @@ export default function ForgotPasswordPage() {
 	const [isSendingOtp, setIsSendingOtp] = useState(false);
 	const [isResetting, setIsResetting] = useState(false);
 
-	const [email, setEmail] = useState("");
-	const [otp, setOtp] = useState("");
-	const [password, setPassword] = useState("");
-	const [confirmPassword, setConfirmPassword] = useState("");
-
 	const [sendMessage, setSendMessage] = useState("");
 	const [resetMessage, setResetMessage] = useState("");
 	const [errorMessage, setErrorMessage] = useState("");
 	const [otpRemainingSeconds, setOtpRemainingSeconds] = useState<number | null>(null);
+
+	const {
+		register,
+		getValues,
+		handleSubmit,
+		trigger,
+		formState: { errors },
+	} = useForm<ResetPasswordFormValues>({
+		resolver: yupResolver(resetPasswordSchema),
+		defaultValues: {
+			email: "",
+			otp: "",
+			password: "",
+			confirmPassword: "",
+		},
+	});
 
 	useEffect(() => {
 		const guardAuthPage = async () => {
@@ -72,26 +86,14 @@ export default function ForgotPasswordPage() {
 		return `${String(minutes).padStart(2, "0")}:${String(remainSeconds).padStart(2, "0")}`;
 	};
 
-	const validateEmail = (): boolean => {
-		if (!email.trim()) {
-			setErrorMessage("Vui lòng nhập email");
-			return false;
-		}
-
-		if (!EMAIL_REGEX.test(email.trim())) {
-			setErrorMessage("Email không đúng định dạng");
-			return false;
-		}
-
-		return true;
-	};
-
 	const handleSendOtp = async () => {
 		setErrorMessage("");
 		setSendMessage("");
 		setResetMessage("");
 
-		if (!validateEmail()) return;
+		const email = getValues("email");
+		const isEmailValid = await trigger("email");
+		if (!isEmailValid) return;
 
 		try {
 			setIsSendingOtp(true);
@@ -107,49 +109,22 @@ export default function ForgotPasswordPage() {
 		}
 	};
 
-	const handleResetPassword = async () => {
+	const handleResetPassword = async (values: ResetPasswordFormValues) => {
 		setErrorMessage("");
 		setResetMessage("");
-
-		if (!validateEmail()) return;
-
-		if (!otp.trim()) {
-			setErrorMessage("Vui lòng nhập mã OTP");
-			return;
-		}
-
-		if (!OTP_REGEX.test(otp.trim())) {
-			setErrorMessage("Mã OTP phải gồm 6 chữ số");
-			return;
-		}
 
 		if (otpRemainingSeconds === null || otpRemainingSeconds <= 0) {
 			setErrorMessage("Mã OTP đã hết hạn, vui lòng gửi lại mã mới");
 			return;
 		}
 
-		if (!password.trim()) {
-			setErrorMessage("Vui lòng nhập mật khẩu mới");
-			return;
-		}
-
-		if (!PASSWORD_REGEX.test(password.trim())) {
-			setErrorMessage("Mật khẩu tối thiểu 6 ký tự, gồm chữ và số");
-			return;
-		}
-
-		if (password !== confirmPassword) {
-			setErrorMessage("Mật khẩu nhập lại không khớp");
-			return;
-		}
-
 		try {
 			setIsResetting(true);
 			const response = await resetPasswordWithOtp({
-				email: email.trim(),
-				otp: otp.trim(),
-				password: password.trim(),
-				confirmPassword: confirmPassword.trim(),
+				email: values.email.trim(),
+				otp: values.otp.trim(),
+				password: values.password.trim(),
+				confirmPassword: values.confirmPassword.trim(),
 			});
 
 			setResetMessage(response.message);
@@ -166,7 +141,7 @@ export default function ForgotPasswordPage() {
 	if (isCheckingAuth) return null;
 
 	return (
-		<section className="bg-muted/30 py-10 md:py-14">
+		<section className="min-h-[calc(100vh-4rem)] bg-[#fbfbfb] py-10 md:py-14">
 			<div className="mx-auto w-full max-w-3xl rounded-lg border bg-card p-6 shadow-sm md:p-8">
 				<h1 className="text-2xl font-bold uppercase">Quên mật khẩu</h1>
 				<p className="mt-2 text-sm text-muted-foreground">
@@ -181,10 +156,10 @@ export default function ForgotPasswordPage() {
 						<Input
 							id="email"
 							type="email"
-							value={email}
-							onChange={(event) => setEmail(event.target.value)}
+							{...register("email")}
 							placeholder="Nhập email đăng ký"
 						/>
+						{errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
 					</div>
 
 					<Button type="button" variant="outline" onClick={handleSendOtp} disabled={isSendingOtp}>
@@ -205,10 +180,10 @@ export default function ForgotPasswordPage() {
 							</label>
 							<Input
 								id="otp"
-								value={otp}
-								onChange={(event) => setOtp(event.target.value)}
+								{...register("otp")}
 								placeholder="Ví dụ: 123456"
 							/>
+							{errors.otp && <p className="text-xs text-destructive">{errors.otp.message}</p>}
 						</div>
 						<div className="space-y-2">
 							<label htmlFor="password" className="text-sm font-medium">
@@ -217,9 +192,9 @@ export default function ForgotPasswordPage() {
 							<Input
 								id="password"
 								type="password"
-								value={password}
-								onChange={(event) => setPassword(event.target.value)}
+								{...register("password")}
 							/>
+							{errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
 						</div>
 					</div>
 
@@ -230,12 +205,12 @@ export default function ForgotPasswordPage() {
 						<Input
 							id="confirmPassword"
 							type="password"
-							value={confirmPassword}
-							onChange={(event) => setConfirmPassword(event.target.value)}
+							{...register("confirmPassword")}
 						/>
+						{errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>}
 					</div>
 
-					<Button type="button" className="w-full" onClick={handleResetPassword} disabled={isResetting}>
+					<Button type="button" className="w-full" onClick={handleSubmit(handleResetPassword)} disabled={isResetting}>
 						{isResetting ? "Đang đổi mật khẩu..." : "Đổi mật khẩu"}
 					</Button>
 

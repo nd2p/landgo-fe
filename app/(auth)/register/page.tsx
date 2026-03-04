@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { parsePhoneNumberFromString } from "libphonenumber-js";
+import { Controller, useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,11 +17,10 @@ import {
 } from "@/components/ui/select";
 import { registerUser } from "@/features/auth/auth.service";
 import { getAuthenticatedRedirectPath } from "@/lib/auth-bootstrap";
-
-const isStrictValidVietnamPhone = (value: string): boolean => {
-    const parsed = parsePhoneNumberFromString(value.trim(), "VN");
-    return !!parsed && parsed.isValid() && parsed.country === "VN";
-};
+import {
+    registerSchema,
+    type RegisterFormValues,
+} from "@/features/auth/auth.validation";
 
 type Province = {
     code: number;
@@ -41,24 +41,39 @@ type Ward = {
 
 export default function RegisterPage() {
     const router = useRouter();
-
-    const [fullName, setFullName] = useState("");
-    const [phone, setPhone] = useState("");
-    const [email, setEmail] = useState("");
-    const [addressDetail, setAddressDetail] = useState("");
-    const [province, setProvince] = useState("");
-    const [district, setDistrict] = useState("");
-    const [ward, setWard] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
     const [submitError, setSubmitError] = useState("");
 
     const [provinces, setProvinces] = useState<Province[]>([]);
     const [districts, setDistricts] = useState<District[]>([]);
     const [wards, setWards] = useState<Ward[]>([]);
+
+    const {
+        register,
+        control,
+        handleSubmit,
+        setValue,
+        watch,
+        formState: { errors },
+    } = useForm<RegisterFormValues>({
+        resolver: yupResolver(registerSchema),
+        defaultValues: {
+            phone: "",
+            fullName: "",
+            email: "",
+            addressDetail: "",
+            province: "",
+            district: "",
+            ward: "",
+            password: "",
+            confirmPassword: "",
+        },
+    });
+
+    const province = watch("province");
+    const district = watch("district");
+    const ward = watch("ward");
 
     useEffect(() => {
         const guardAuthPage = async () => {
@@ -145,67 +160,8 @@ export default function RegisterPage() {
         void fetchWards();
     }, [district]);
 
-    const handleProvinceChange = (value: string) => {
-        setProvince(value);
-        setDistrict("");
-        setWard("");
-    };
-
-    const handleDistrictChange = (value: string) => {
-        setDistrict(value);
-        setWard("");
-    };
-
-    const validateForm = (): boolean => {
-        const errors: Record<string, string> = {};
-        const emailRegex = /^\S+@\S+\.\S+$/;
-        const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
-
-        if (!phone.trim()) {
-            errors.phone = "Vui lòng nhập số điện thoại";
-        } else if (!isStrictValidVietnamPhone(phone)) {
-            errors.phone = "Số điện thoại không đúng định dạng VN";
-        }
-
-        if (!fullName.trim()) {
-            errors.fullName = "Vui lòng nhập họ tên";
-        } else if (fullName.trim().length < 2 || fullName.trim().length > 100) {
-            errors.fullName = "Họ tên phải từ 2 đến 100 ký tự";
-        }
-
-        if (!email.trim()) {
-            errors.email = "Vui lòng nhập email";
-        } else if (!emailRegex.test(email.trim())) {
-            errors.email = "Email không đúng định dạng";
-        }
-
-        if (!province) errors.province = "Vui lòng chọn Tỉnh / Thành phố";
-        if (!district) errors.district = "Vui lòng chọn Quận / Huyện";
-        if (!ward) errors.ward = "Vui lòng chọn Xã / Phường";
-
-        if (!password.trim()) {
-            errors.password = "Vui lòng nhập mật khẩu";
-        } else if (!passwordRegex.test(password.trim())) {
-            errors.password = "Mật khẩu tối thiểu 6 ký tự, gồm chữ và số";
-        }
-
-        if (!confirmPassword.trim()) {
-            errors.confirmPassword = "Vui lòng nhập lại mật khẩu";
-        } else if (confirmPassword !== password) {
-            errors.confirmPassword = "Mật khẩu nhập lại không khớp";
-        }
-
-        setFieldErrors(errors);
-        return Object.keys(errors).length === 0;
-    };
-
-    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const onSubmit = async (values: RegisterFormValues) => {
         setSubmitError("");
-
-        if (!validateForm()) {
-            return;
-        }
 
         try {
             setIsSubmitting(true);
@@ -223,23 +179,26 @@ export default function RegisterPage() {
             }
 
             const response = await registerUser({
-                phone: phone.trim(),
-                email: email.trim(),
-                name: fullName.trim(),
-                password: password.trim(),
-                confirmPassword: confirmPassword.trim(),
+                phone: values.phone.trim(),
+                email: values.email.trim(),
+                name: values.fullName.trim(),
+                password: values.password.trim(),
+                confirmPassword: values.confirmPassword.trim(),
                 provinceCode: String(selectedProvince.code),
                 provinceName: selectedProvince.name,
                 districtCode: String(selectedDistrict.code),
                 districtName: selectedDistrict.name,
                 wardCode: String(selectedWard.code),
                 wardName: selectedWard.name,
-                addressDetail: addressDetail.trim() || undefined,
+                addressDetail: values.addressDetail?.trim() || undefined,
             });
 
             const query = new URLSearchParams({
-                email: email.trim(),
+                email: values.email.trim(),
                 expiresInSeconds: String(response.data.emailOtpExpiresInSeconds ?? 60),
+                expiresAt: String(
+                    Date.now() + (response.data.emailOtpExpiresInSeconds ?? 60) * 1000
+                ),
             });
 
             router.push(`/verify-email?${query.toString()}`);
@@ -268,7 +227,7 @@ export default function RegisterPage() {
                     </Link>
                 </p>
 
-                <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+                <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
                     <div className="space-y-2">
                         <label htmlFor="phone" className="required text-sm font-medium">
                             Số điện thoại
@@ -276,13 +235,12 @@ export default function RegisterPage() {
                         <Input
                             id="phone"
                             type="tel"
-                            value={phone}
-                            onChange={(event) => setPhone(event.target.value)}
+                            {...register("phone")}
                             placeholder="Nhập số điện thoại"
                             required
                         />
-                        {fieldErrors.phone && (
-                            <p className="text-xs text-destructive">{fieldErrors.phone}</p>
+                        {errors.phone && (
+                            <p className="text-xs text-destructive">{errors.phone.message}</p>
                         )}
                     </div>
 
@@ -292,13 +250,12 @@ export default function RegisterPage() {
                         </label>
                         <Input
                             id="fullName"
-                            value={fullName}
-                            onChange={(event) => setFullName(event.target.value)}
+                            {...register("fullName")}
                             placeholder="Nhập họ tên"
                             required
                         />
-                        {fieldErrors.fullName && (
-                            <p className="text-xs text-destructive">{fieldErrors.fullName}</p>
+                        {errors.fullName && (
+                            <p className="text-xs text-destructive">{errors.fullName.message}</p>
                         )}
                     </div>
 
@@ -309,74 +266,101 @@ export default function RegisterPage() {
                         <Input
                             id="email"
                             type="email"
-                            value={email}
-                            onChange={(event) => setEmail(event.target.value)}
+                            {...register("email")}
                             placeholder="Nhập email"
                             required
                         />
-                        {fieldErrors.email && (
-                            <p className="text-xs text-destructive">{fieldErrors.email}</p>
+                        {errors.email && (
+                            <p className="text-xs text-destructive">{errors.email.message}</p>
                         )}
                     </div>
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Tỉnh / Thành phố</label>
-                        <Select value={province} onValueChange={handleProvinceChange}>
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="- Chọn -" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {provinces.map((item) => (
-                                    <SelectItem key={item.code} value={String(item.code)}>
-                                        {item.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {fieldErrors.province && (
-                            <p className="text-xs text-destructive">{fieldErrors.province}</p>
+                        <Controller
+                            control={control}
+                            name="province"
+                            render={({ field }) => (
+                                <Select
+                                    value={field.value}
+                                    onValueChange={(value) => {
+                                        field.onChange(value);
+                                        setValue("district", "");
+                                        setValue("ward", "");
+                                    }}
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="- Chọn -" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {provinces.map((item) => (
+                                            <SelectItem key={item.code} value={String(item.code)}>
+                                                {item.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                        {errors.province && (
+                            <p className="text-xs text-destructive">{errors.province.message}</p>
                         )}
                     </div>
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Quận / Huyện</label>
-                        <Select
-                            value={district}
-                            onValueChange={handleDistrictChange}
-                            disabled={!province}
-                        >
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="- Chọn -" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {districts.map((item) => (
-                                    <SelectItem key={item.code} value={String(item.code)}>
-                                        {item.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {fieldErrors.district && (
-                            <p className="text-xs text-destructive">{fieldErrors.district}</p>
+                        <Controller
+                            control={control}
+                            name="district"
+                            render={({ field }) => (
+                                <Select
+                                    value={field.value}
+                                    onValueChange={(value) => {
+                                        field.onChange(value);
+                                        setValue("ward", "");
+                                    }}
+                                    disabled={!province}
+                                >
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="- Chọn -" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {districts.map((item) => (
+                                            <SelectItem key={item.code} value={String(item.code)}>
+                                                {item.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                        {errors.district && (
+                            <p className="text-xs text-destructive">{errors.district.message}</p>
                         )}
                     </div>
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Xã / Phường</label>
-                        <Select value={ward} onValueChange={setWard} disabled={!district}>
-                            <SelectTrigger className="w-full">
-                                <SelectValue placeholder="- Chọn -" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {wards.map((item) => (
-                                    <SelectItem key={item.code} value={String(item.code)}>
-                                        {item.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {fieldErrors.ward && (
-                            <p className="text-xs text-destructive">{fieldErrors.ward}</p>
+                        <Controller
+                            control={control}
+                            name="ward"
+                            render={({ field }) => (
+                                <Select value={field.value} onValueChange={field.onChange} disabled={!district}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="- Chọn -" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {wards.map((item) => (
+                                            <SelectItem key={item.code} value={String(item.code)}>
+                                                {item.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                        {errors.ward && (
+                            <p className="text-xs text-destructive">{errors.ward.message}</p>
                         )}
                     </div>
 
@@ -386,8 +370,7 @@ export default function RegisterPage() {
                         </label>
                         <Input
                             id="addressDetail"
-                            value={addressDetail}
-                            onChange={(event) => setAddressDetail(event.target.value)}
+                            {...register("addressDetail")}
                             placeholder="Ví dụ: Số nhà, tên đường..."
                         />
                     </div>
@@ -399,12 +382,11 @@ export default function RegisterPage() {
                         <Input
                             id="password"
                             type="password"
-                            value={password}
-                            onChange={(event) => setPassword(event.target.value)}
+                            {...register("password")}
                             required
                         />
-                        {fieldErrors.password && (
-                            <p className="text-xs text-destructive">{fieldErrors.password}</p>
+                        {errors.password && (
+                            <p className="text-xs text-destructive">{errors.password.message}</p>
                         )}
                     </div>
 
@@ -418,13 +400,12 @@ export default function RegisterPage() {
                         <Input
                             id="confirmPassword"
                             type="password"
-                            value={confirmPassword}
-                            onChange={(event) => setConfirmPassword(event.target.value)}
+                            {...register("confirmPassword")}
                             required
                         />
-                        {fieldErrors.confirmPassword && (
+                        {errors.confirmPassword && (
                             <p className="text-xs text-destructive">
-                                {fieldErrors.confirmPassword}
+                                {errors.confirmPassword.message}
                             </p>
                         )}
                     </div>

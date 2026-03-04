@@ -1,37 +1,84 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { verifyEmailOtp } from "@/features/auth/auth.service";
 import { getAuthenticatedRedirectPath } from "@/lib/auth-bootstrap";
+import {
+	type VerifyEmailFormValues,
+	verifyEmailSchema,
+} from "@/features/auth/auth.validation";
 
-const OTP_REGEX = /^\d{6}$/;
-
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 
 	const defaultEmail = searchParams.get("email") ?? "";
+	const expiresAtFromQuery = Number(searchParams.get("expiresAt") ?? "");
 	const expiresInSecondsFromQuery = Number(searchParams.get("expiresInSeconds") ?? "60");
-	const initialSeconds = Number.isFinite(expiresInSecondsFromQuery) && expiresInSecondsFromQuery > 0
-		? expiresInSecondsFromQuery
-		: 60;
+
+	const fallbackDurationSeconds =
+		Number.isFinite(expiresInSecondsFromQuery) && expiresInSecondsFromQuery > 0
+			? expiresInSecondsFromQuery
+			: 60;
+
+	const expiresAtMs = useMemo(() => {
+		const storageKey = `verify-email-expires-at:${defaultEmail || "anonymous"}`;
+
+		if (Number.isFinite(expiresAtFromQuery) && expiresAtFromQuery > 0) {
+			if (typeof window !== "undefined") {
+				window.sessionStorage.setItem(storageKey, String(expiresAtFromQuery));
+			}
+			return expiresAtFromQuery;
+		}
+
+		if (typeof window !== "undefined") {
+			const storedExpiresAt = Number(window.sessionStorage.getItem(storageKey) ?? "");
+			if (Number.isFinite(storedExpiresAt) && storedExpiresAt > 0) {
+				return storedExpiresAt;
+			}
+
+			const generatedExpiresAt = Date.now() + fallbackDurationSeconds * 1000;
+			window.sessionStorage.setItem(storageKey, String(generatedExpiresAt));
+			return generatedExpiresAt;
+		}
+
+		return Date.now() + fallbackDurationSeconds * 1000;
+	}, [defaultEmail, expiresAtFromQuery, fallbackDurationSeconds]);
+
+	const calculateRemainingSeconds = () => {
+		const remainMs = expiresAtMs - Date.now();
+		return remainMs > 0 ? Math.ceil(remainMs / 1000) : 0;
+	};
 
 	const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [email, setEmail] = useState(defaultEmail);
-	const [otp, setOtp] = useState("");
 	const [message, setMessage] = useState("");
 	const [errorMessage, setErrorMessage] = useState("");
-	const [remainingSeconds, setRemainingSeconds] = useState(initialSeconds);
+	const [remainingSeconds, setRemainingSeconds] = useState(calculateRemainingSeconds);
+
+	const {
+		register,
+		handleSubmit,
+		setValue,
+		formState: { errors },
+	} = useForm<VerifyEmailFormValues>({
+		resolver: yupResolver(verifyEmailSchema),
+		defaultValues: {
+			email: defaultEmail,
+			otp: "",
+		},
+	});
 
 	useEffect(() => {
-		setEmail(defaultEmail);
-	}, [defaultEmail]);
+		setValue("email", defaultEmail);
+	}, [defaultEmail, setValue]);
 
 	useEffect(() => {
 		const guardAuthPage = async () => {
@@ -49,16 +96,16 @@ export default function VerifyEmailPage() {
 	}, [router]);
 
 	useEffect(() => {
-		if (remainingSeconds <= 0) return;
+		setRemainingSeconds(calculateRemainingSeconds());
 
 		const timerId = window.setInterval(() => {
-			setRemainingSeconds((previous) => (previous <= 1 ? 0 : previous - 1));
+			setRemainingSeconds(calculateRemainingSeconds());
 		}, 1000);
 
 		return () => {
 			window.clearInterval(timerId);
 		};
-	}, [remainingSeconds]);
+	}, [expiresAtMs]);
 
 	const countdownText = useMemo(() => {
 		const minutes = Math.floor(remainingSeconds / 60);
@@ -66,19 +113,9 @@ export default function VerifyEmailPage() {
 		return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 	}, [remainingSeconds]);
 
-	const handleVerify = async () => {
+	const handleVerify = async (values: VerifyEmailFormValues) => {
 		setErrorMessage("");
 		setMessage("");
-
-		if (!email.trim()) {
-			setErrorMessage("Vui lòng nhập email");
-			return;
-		}
-
-		if (!OTP_REGEX.test(otp.trim())) {
-			setErrorMessage("Mã OTP phải gồm 6 chữ số");
-			return;
-		}
 
 		if (remainingSeconds <= 0) {
 			setErrorMessage("Mã OTP đã hết hạn, vui lòng đăng ký lại để nhận mã mới");
@@ -88,8 +125,8 @@ export default function VerifyEmailPage() {
 		try {
 			setIsSubmitting(true);
 			const response = await verifyEmailOtp({
-				email: email.trim(),
-				otp: otp.trim(),
+				email: values.email.trim(),
+				otp: values.otp.trim(),
 			});
 			setMessage(response.message);
 			setTimeout(() => {
@@ -105,7 +142,7 @@ export default function VerifyEmailPage() {
 	if (isCheckingAuth) return null;
 
 	return (
-		<section className="bg-muted/30 py-10 md:py-14">
+		<section className="min-h-[calc(100vh-4rem)] bg-[#fbfbfb] py-10 md:py-14">
 			<div className="mx-auto w-full max-w-xl rounded-lg border bg-card p-6 shadow-sm md:p-8">
 				<h1 className="text-2xl font-bold uppercase">Xác thực email</h1>
 				<p className="mt-2 text-sm text-muted-foreground">
@@ -120,9 +157,9 @@ export default function VerifyEmailPage() {
 						<Input
 							id="email"
 							type="email"
-							value={email}
-							onChange={(event) => setEmail(event.target.value)}
+							{...register("email")}
 						/>
+						{errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
 					</div>
 
 					<div className="space-y-2">
@@ -131,10 +168,10 @@ export default function VerifyEmailPage() {
 						</label>
 						<Input
 							id="otp"
-							value={otp}
-							onChange={(event) => setOtp(event.target.value)}
+							{...register("otp")}
 							placeholder="Ví dụ: 123456"
 						/>
+						{errors.otp && <p className="text-sm text-destructive">{errors.otp.message}</p>}
 					</div>
 
 					<p className={`text-sm ${remainingSeconds > 0 ? "text-amber-600" : "text-destructive"}`}>
@@ -143,7 +180,7 @@ export default function VerifyEmailPage() {
 							: "Mã OTP đã hết hạn, vui lòng đăng ký lại để nhận mã mới"}
 					</p>
 
-					<Button type="button" className="w-full" onClick={handleVerify} disabled={isSubmitting}>
+					<Button type="button" className="w-full" onClick={handleSubmit(handleVerify)} disabled={isSubmitting}>
 						{isSubmitting ? "Đang xác thực..." : "Xác thực email"}
 					</Button>
 
@@ -156,5 +193,13 @@ export default function VerifyEmailPage() {
 				</div>
 			</div>
 		</section>
+	);
+}
+
+export default function VerifyEmailPage() {
+	return (
+		<Suspense fallback={null}>
+			<VerifyEmailContent />
+		</Suspense>
 	);
 }

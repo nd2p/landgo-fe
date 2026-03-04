@@ -4,27 +4,34 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
-import { parsePhoneNumberFromString } from "libphonenumber-js";
+import { useForm } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { loginUser } from "@/features/auth/auth.service";
 import { getAuthenticatedRedirectPath } from "@/lib/auth-bootstrap";
 import { getHomePathByRole } from "@/lib/auth-role";
-
-const isStrictValidVietnamPhone = (value: string): boolean => {
-    const parsed = parsePhoneNumberFromString(value.trim(), "VN");
-    return !!parsed && parsed.isValid() && parsed.country === "VN";
-};
+import { loginSchema, type LoginFormValues } from "@/features/auth/auth.validation";
 
 export default function LoginPage() {
     const router = useRouter();
     const [showPassword, setShowPassword] = useState(false);
-    const [phone, setPhone] = useState("");
-    const [password, setPassword] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm<LoginFormValues>({
+        resolver: yupResolver(loginSchema),
+        defaultValues: {
+            phone: "",
+            password: "",
+        },
+    });
 
     useEffect(() => {
         const guardAuthPage = async () => {
@@ -41,35 +48,14 @@ export default function LoginPage() {
         void guardAuthPage();
     }, [router]);
 
-    const validateForm = (): boolean => {
-        if (!phone.trim()) {
-            setErrorMessage("Vui lòng nhập số điện thoại");
-            return false;
-        }
-
-        if (!isStrictValidVietnamPhone(phone)) {
-            setErrorMessage("Số điện thoại không đúng định dạng Việt Nam");
-            return false;
-        }
-
-        if (!password.trim()) {
-            setErrorMessage("Vui lòng nhập mật khẩu");
-            return false;
-        }
-
+    const onSubmit = async (values: LoginFormValues) => {
         setErrorMessage("");
-        return true;
-    };
-
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        if (!validateForm()) return;
 
         try {
             setIsSubmitting(true);
             const response = await loginUser({
-                phone: phone.trim(),
-                password,
+                phone: values.phone.trim(),
+                password: values.password,
             });
 
             const redirectPath = getHomePathByRole(response.data.user.role);
@@ -88,7 +74,7 @@ export default function LoginPage() {
     }
 
     return (
-        <section className="bg-muted/30 py-10 md:py-14">
+        <section className="min-h-[calc(100vh-4rem)] bg-[#fbfbfb] py-10 md:py-14">
             <div className="mx-auto w-full max-w-3xl rounded-lg border bg-card p-6 shadow-sm md:p-8">
                 <h1 className="text-3xl font-bold uppercase">Đăng nhập</h1>
 
@@ -101,7 +87,7 @@ export default function LoginPage() {
 
                 <div className="my-4 h-px w-full bg-border" />
 
-                <form className="space-y-4" onSubmit={handleSubmit}>
+                <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
                     <div className="space-y-2">
                         <label htmlFor="phone" className="text-sm font-medium">
                             Số điện thoại
@@ -109,9 +95,11 @@ export default function LoginPage() {
                         <Input
                             id="phone"
                             type="tel"
-                            value={phone}
-                            onChange={(event) => setPhone(event.target.value)}
+                            {...register("phone")}
                         />
+                        {errors.phone && (
+                            <p className="text-sm text-destructive">{errors.phone.message}</p>
+                        )}
                     </div>
 
                     <div className="space-y-2">
@@ -122,9 +110,8 @@ export default function LoginPage() {
                             <Input
                                 id="password"
                                 type={showPassword ? "text" : "password"}
-                                value={password}
-                                onChange={(event) => setPassword(event.target.value)}
                                 className="pr-10"
+                                {...register("password")}
                             />
                             <button
                                 type="button"
@@ -144,6 +131,9 @@ export default function LoginPage() {
                                 Quên mật khẩu?
                             </Link>
                         </p>
+                        {errors.password && (
+                            <p className="text-sm text-destructive">{errors.password.message}</p>
+                        )}
                     </div>
 
                     {errorMessage && (

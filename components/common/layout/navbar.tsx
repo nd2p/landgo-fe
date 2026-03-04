@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -20,9 +21,13 @@ import Menubar from "@/components/common/layout/menubar";
 import { logoutUser } from "@/features/auth/auth.service";
 
 export default function Navbar() {
+    const router = useRouter();
+    const pathname = usePathname();
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    const isAuthPage = pathname === "/login" || pathname === "/register" || pathname === "/forgot-password" || pathname === "/verify-email";
 
     useEffect(() => {
         const syncAuthState = () => {
@@ -45,14 +50,17 @@ export default function Navbar() {
         try {
             setIsLoggingOut(true);
             await logoutUser();
-            setIsMenuOpen(false);
+        } catch {
+            // ignore logout API error and still force redirect to login
         } finally {
+            setIsMenuOpen(false);
             setIsLoggingOut(false);
+            router.replace("/login");
         }
     };
 
     return (
-        <header>
+        <header className={isAuthPage ? "bg-[#fbfbfb]" : "bg-background"}>
             <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-4">
                 <div className="flex items-center">
                     <Menubar />
