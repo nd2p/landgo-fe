@@ -1,4 +1,3 @@
-// Token handling
 const ACCESS_TOKEN_KEY = "landgo_access_token";
 const AUTH_TOKEN_CHANGED_EVENT = "landgo-auth-token-changed";
 const EXPIRY_BUFFER_MS = 60 * 1000;
