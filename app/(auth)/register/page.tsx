@@ -21,23 +21,7 @@ import {
     registerSchema,
     type RegisterFormValues,
 } from "@/features/auth/auth.validation";
-
-type Province = {
-    code: number;
-    name: string;
-};
-
-type District = {
-    code: number;
-    name: string;
-    province_code: number;
-};
-
-type Ward = {
-    code: number;
-    name: string;
-    district_code: number;
-};
+import { useLocationData } from "@/features/search/location.hooks";
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -45,9 +29,13 @@ export default function RegisterPage() {
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
     const [submitError, setSubmitError] = useState("");
 
-    const [provinces, setProvinces] = useState<Province[]>([]);
-    const [districts, setDistricts] = useState<District[]>([]);
-    const [wards, setWards] = useState<Ward[]>([]);
+    const {
+        provinces,
+        districts,
+        wards,
+        fetchDistricts,
+        fetchWards,
+    } = useLocationData();
 
     const {
         register,
@@ -91,74 +79,16 @@ export default function RegisterPage() {
     }, [router]);
 
     useEffect(() => {
-        const fetchProvinces = async () => {
-            try {
-                const response = await fetch("https://provinces.open-api.vn/api/v1/p/");
-                if (!response.ok) {
-                    throw new Error("Không thể tải danh sách tỉnh/thành phố");
-                }
-
-                const data: Province[] = await response.json();
-                setProvinces(data);
-            } catch (error) {
-                console.error(error);
-            }
-        };
-
-        void fetchProvinces();
-    }, []);
+        if (province) {
+            void fetchDistricts(province);
+        }
+    }, [province, fetchDistricts]);
 
     useEffect(() => {
-        if (!province) {
-            setDistricts([]);
-            return;
+        if (district) {
+            void fetchWards(district);
         }
-
-        const fetchDistricts = async () => {
-            try {
-                const response = await fetch("https://provinces.open-api.vn/api/v1/d/");
-                if (!response.ok) {
-                    throw new Error("Không thể tải danh sách quận/huyện");
-                }
-
-                const data: District[] = await response.json();
-                const provinceCode = Number(province);
-                setDistricts(
-                    data.filter((item) => item.province_code === provinceCode)
-                );
-            } catch (error) {
-                console.error(error);
-                setDistricts([]);
-            }
-        };
-
-        void fetchDistricts();
-    }, [province]);
-
-    useEffect(() => {
-        if (!district) {
-            setWards([]);
-            return;
-        }
-
-        const fetchWards = async () => {
-            try {
-                const response = await fetch("https://provinces.open-api.vn/api/v1/w/");
-                if (!response.ok) {
-                    throw new Error("Không thể tải danh sách xã/phường");
-                }
-
-                const data: Ward[] = await response.json();
-                const districtCode = Number(district);
-                setWards(data.filter((item) => item.district_code === districtCode));
-            } catch (error) {
-                console.error(error);
-                setWards([]);
-            }
-        };
-
-        void fetchWards();
-    }, [district]);
+    }, [district, fetchWards]);
 
     const onSubmit = async (values: RegisterFormValues) => {
         setSubmitError("");

@@ -1,3 +1,3 @@
 export default function MyEstatesPage() {
-    return <div>User's estates</div>;
+    return <div>User estates</div>;
 }
