@@ -7,17 +7,17 @@ import { useRouter } from "next/navigation";
 import {
     BadgeDollarSign,
     Building2,
+    ChevronRight,
     CircleUserRound,
     Crown,
     FileText,
     Landmark,
-    List,
+    LogOut,
     Map,
     MapPinned,
     Menu,
     Monitor,
     NotebookText,
-    PhoneCall,
     Tags,
 } from "lucide-react";
 
@@ -97,119 +97,107 @@ export default function Menubar() {
             </Button>
 
             {open && (
-                <div className="fixed inset-0 z-50 flex">
+                <div className="fixed inset-0 z-50 animate-in fade-in duration-200">
                     <button
                         type="button"
-                        className="h-full flex-1 bg-black/55"
+                        className="absolute inset-0 bg-black/55 animate-in fade-in duration-200"
                         onClick={() => setOpen(false)}
                         aria-label="Đóng menu"
                     />
 
-                    <aside className="h-full w-[72%] max-w-sm overflow-y-auto border-l bg-card">
-                        <div className="border-b p-3">
+                    <aside className="absolute left-3 top-3 bottom-3 w-70 overflow-y-auto bg-card rounded-2xl flex flex-col shadow-lg animate-in slide-in-from-left-96 duration-300">
+                        {/* Logo */}
+                        <div className="px-4 py-3 border-b">
                             <Image
                                 src="/logo-landgo.png"
                                 alt="LandGo"
                                 width={170}
                                 height={52}
-                                className="mx-auto h-auto w-[170px]"
+                                className="h-auto w-auto max-w-35"
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 border-b">
-                            {isLoggedIn ? null : (
-                                <>
-                                    <Link
-                                        href="/login"
-                                        onClick={() => setOpen(false)}
-                                        className="flex items-center gap-2 border-r border-b px-4 py-3 text-base font-medium"
-                                    >
-                                        <CircleUserRound className="size-5 text-sky-500" />
-                                        Đăng nhập
-                                    </Link>
-                                    <Link
-                                        href="/register"
-                                        onClick={() => setOpen(false)}
-                                        className="flex items-center gap-2 border-b px-4 py-3 text-base font-medium"
-                                    >
-                                        <BadgeDollarSign className="size-5 text-emerald-500" />
-                                        Đăng ký
-                                    </Link>
-                                </>
-                            )}
+                        {/* Auth Links - Only show if not logged in */}
+                        {!isLoggedIn && (
+                            <div className="grid grid-cols-2 gap-2 p-4 border-b">
+                                <Link
+                                    href="/login"
+                                    onClick={() => setOpen(false)}
+                                    className="flex items-center justify-center gap-1 rounded-md bg-sky-50 px-3 py-2 text-sm font-medium text-sky-600 hover:bg-sky-100"
+                                >
+                                    <CircleUserRound className="size-4" />
+                                    Đăng nhập
+                                </Link>
+                                <Link
+                                    href="/register"
+                                    onClick={() => setOpen(false)}
+                                    className="flex items-center justify-center gap-1 rounded-md bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-600 hover:bg-emerald-100"
+                                >
+                                    <BadgeDollarSign className="size-4" />
+                                    Đăng ký
+                                </Link>
+                            </div>
+                        )}
 
+                        {/* Main Menu */}
+                        <nav className="flex-1 px-2 py-4 border-b">
                             {MENU_ITEMS.map((item) => {
                                 const Icon = item.icon;
                                 return (
                                     <button
                                         key={item.label}
                                         type="button"
-                                        className="flex items-center gap-2 border-r border-b px-3 py-3 text-left text-sm leading-5 font-medium odd:border-r last:border-r-0"
+                                        className="w-full flex items-center justify-between gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-foreground hover:bg-slate-100 transition-colors"
                                     >
-                                        <Icon className="size-4 text-muted-foreground" />
-                                        {item.label}
+                                        <div className="flex items-center gap-3">
+                                            <Icon className="size-4 text-muted-foreground shrink-0" />
+                                            <span>{item.label}</span>
+                                        </div>
+                                        <ChevronRight className="size-4 text-muted-foreground shrink-0" />
                                     </button>
                                 );
                             })}
-                        </div>
+                        </nav>
 
-                        <div className="border-b px-4 py-4 text-center">
-                            <p className="text-2xl font-extrabold leading-tight text-slate-800">
-                                ĐANG CÓ NGUỒN BĐS VAY CHÊNH
-                            </p>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                Giá bán chỉ bằng 30%-50% so với định giá, thấp hơn mức
-                                ngân hàng cho vay 15%-30%, hỗ trợ hạn mức vay.
-                            </p>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                Anh chị đầu tư có sẵn tài chính hoặc hạn mức vay trên 30 tỷ,
-                                quan tâm dạng tài sản này, vui lòng liên hệ:
-                            </p>
-                            <Button className="mt-3 gap-2 px-5">
-                                <PhoneCall className="size-4" />
-                                TÔI QUAN TÂM
-                            </Button>
-                        </div>
-
-                        {isLoggedIn ? (
-                            <div className="border-b">
-                                <div className="px-5 py-4 text-lg font-semibold leading-6">
-                                    Nguyễn Hoàng Anh
+                        {/* User Section - Only show if logged in */}
+                        {isLoggedIn && (
+                            <div className="p-4 border-b">
+                                <div className="mb-3 flex items-center gap-3 rounded-lg bg-slate-50 p-3">
+                                    <div className="size-8 rounded-full bg-amber-400" />
+                                    <div className="text-left">
+                                        <p className="text-sm font-semibold text-foreground">Nguyễn Hoàng Anh</p>
+                                        <p className="text-xs text-muted-foreground">Your account</p>
+                                    </div>
                                 </div>
-                                {USER_MENU_ITEMS.map((item) => (
-                                    <button
-                                        type="button"
-                                        key={item}
-                                        className="block w-full border-t px-5 py-3 text-left text-base font-medium leading-6"
-                                    >
-                                        {item}
-                                    </button>
-                                ))}
+
+                                <button className="w-full flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm font-medium text-amber-600 hover:bg-amber-100 mb-3">
+                                    <Crown className="size-4" />
+                                    Nâng cấp Pro
+                                </button>
+
+                                <div className="space-y-1">
+                                    {USER_MENU_ITEMS.map((item) => (
+                                        <button
+                                            type="button"
+                                            key={item}
+                                            className="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm text-foreground hover:bg-slate-100 transition-colors"
+                                        >
+                                            <span>{item}</span>
+                                        </button>
+                                    ))}
+                                </div>
+
                                 <button
                                     type="button"
-                                    className="block w-full border-t px-5 py-4 text-left text-base font-semibold leading-6"
+                                    className="w-full flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 mt-3"
                                     onClick={handleLogout}
                                     disabled={isLoggingOut}
                                 >
+                                    <LogOut className="size-4" />
                                     {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
                                 </button>
                             </div>
-                        ) : null}
-
-                        <div className="flex items-center justify-center gap-3 p-4">
-                            <button
-                                type="button"
-                                className="rounded-md bg-black px-4 py-2 text-xs font-semibold text-white"
-                            >
-                                Download on the App Store
-                            </button>
-                            <button
-                                type="button"
-                                className="rounded-md bg-black px-4 py-2 text-xs font-semibold text-white"
-                            >
-                                Android App on Google Play
-                            </button>
-                        </div>
+                        )}
                     </aside>
                 </div>
             )}
