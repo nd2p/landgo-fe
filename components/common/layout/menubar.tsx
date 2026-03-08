@@ -26,12 +26,12 @@ import { authTokenChangedEventName, isLoggedIn as hasAccessToken } from "@/lib/a
 import { logoutUser } from "@/features/auth/auth.service";
 
 const MENU_ITEMS = [
-    { label: "Mua bán", icon: Building2 },
-    { label: "Cho thuê", icon: BadgeDollarSign },
-    { label: "Bản đồ quy hoạch", icon: MapPinned },
-    { label: "Kho bản đồ quy hoạch", icon: Map },
-    { label: "Bản đồ giá nhà đất", icon: Landmark },
-    { label: "Dự án bất động sản", icon: Building2 },
+    { label: "Mua bán", icon: Building2, to: "/estates" },
+    { label: "Cho thuê", icon: BadgeDollarSign, to: "/rentals" },
+    { label: "Bản đồ quy hoạch", icon: MapPinned, to: "/maps/urban-planning" },
+    { label: "Kho bản đồ quy hoạch", icon: Map, to: "/maps/urban-planning-library" },
+    { label: "Bản đồ giá nhà đất", icon: Landmark, to: "/maps/property-prices" },
+    { label: "Dự án bất động sản", icon: Building2, to: "/projects" },
     { label: "Bảng giá đất 2026", icon: NotebookText },
     { label: "Danh sách môi giới", icon: Tags },
     { label: "Hướng dẫn check quy hoạch", icon: Monitor },
@@ -41,11 +41,11 @@ const MENU_ITEMS = [
 ];
 
 const USER_MENU_ITEMS = [
-    "Thông tin cá nhân",
-    "Tin đã đăng",
-    "Tin đã thích",
-    "CRM quản lý khách",
-    "CRM quản lý nguồn hàng",
+    { label: "Thông tin cá nhân", to: "/profile" },
+    { label: "Tin đã đăng", to: "/my-estates" },
+    { label: "Tin đã thích", to: "/saved-estates" },
+    { label: "CRM quản lý khách", to: "/crm/customers" },
+    { label: "CRM quản lý nguồn hàng", to: "/crm/suppliers" },
 ];
 
 export default function Menubar() {
@@ -148,6 +148,11 @@ export default function Menubar() {
                                         key={item.label}
                                         type="button"
                                         className="w-full flex items-center justify-between gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-foreground hover:bg-slate-100 transition-colors"
+                                        onClick={() => {
+                                            if (!item.to) return;
+                                            setOpen(false);
+                                            router.push(item.to);
+                                        }}
                                     >
                                         <div className="flex items-center gap-3">
                                             <Icon className="size-4 text-muted-foreground shrink-0" />
@@ -179,10 +184,10 @@ export default function Menubar() {
                                     {USER_MENU_ITEMS.map((item) => (
                                         <button
                                             type="button"
-                                            key={item}
+                                            key={item.label}
                                             className="w-full flex items-center gap-3 rounded-md px-3 py-2 text-sm text-foreground hover:bg-slate-100 transition-colors"
                                         >
-                                            <span>{item}</span>
+                                            <span>{item.label}</span>
                                         </button>
                                     ))}
                                 </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -21,7 +21,12 @@ import {
     registerSchema,
     type RegisterFormValues,
 } from "@/features/auth/auth.validation";
-import { useLocationData } from "@/features/search/location.hooks";
+import {
+    getDistrictsService,
+    getProvinceService,
+    getWardsService,
+} from "@/features/location/location.service";
+import { IDistrict, IProvince, IWard } from "@/features/location/location.type";
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -29,13 +34,9 @@ export default function RegisterPage() {
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
     const [submitError, setSubmitError] = useState("");
 
-    const {
-        provinces,
-        districts,
-        wards,
-        fetchDistricts,
-        fetchWards,
-    } = useLocationData();
+    const [provinces, setProvinces] = useState<IProvince[]>([]);
+    const [districts, setDistricts] = useState<IDistrict[]>([]);
+    const [wards, setWards] = useState<IWard[]>([]);
 
     const {
         register,
@@ -64,6 +65,50 @@ export default function RegisterPage() {
     const ward = watch("ward");
 
     useEffect(() => {
+        const fetchProvinces = async () => {
+            try {
+                const data = await getProvinceService();
+                setProvinces(data);
+            } catch (error) {
+                console.error(error);
+                setProvinces([]);
+            }
+        };
+
+        void fetchProvinces();
+    }, []);
+
+    const fetchDistricts = useCallback(async (provinceId: string) => {
+        if (!provinceId) {
+            setDistricts([]);
+            return;
+        }
+
+        try {
+            const data = await getDistrictsService(provinceId);
+            setDistricts(data);
+        } catch (error) {
+            console.error(error);
+            setDistricts([]);
+        }
+    }, []);
+
+    const fetchWards = useCallback(async (districtId: string) => {
+        if (!districtId) {
+            setWards([]);
+            return;
+        }
+
+        try {
+            const data = await getWardsService(districtId);
+            setWards(data);
+        } catch (error) {
+            console.error(error);
+            setWards([]);
+        }
+    }, []);
+
+    useEffect(() => {
         const guardAuthPage = async () => {
             const redirectPath = await getAuthenticatedRedirectPath();
 
@@ -80,15 +125,23 @@ export default function RegisterPage() {
 
     useEffect(() => {
         if (province) {
-            void fetchDistricts(province);
+            const selectedProvince = provinces.find((item) => item.code === province);
+            void fetchDistricts(selectedProvince?._id ?? "");
+            setValue("district", "");
+            setValue("ward", "");
+            setDistricts([]);
+            setWards([]);
         }
-    }, [province, fetchDistricts]);
+    }, [province, provinces, fetchDistricts, setValue]);
 
     useEffect(() => {
         if (district) {
-            void fetchWards(district);
+            const selectedDistrict = districts.find((item) => item.code === district);
+            void fetchWards(selectedDistrict?._id ?? "");
+            setValue("ward", "");
+            setWards([]);
         }
-    }, [district, fetchWards]);
+    }, [district, districts, fetchWards, setValue]);
 
     const onSubmit = async (values: RegisterFormValues) => {
         setSubmitError("");
@@ -97,12 +150,12 @@ export default function RegisterPage() {
             setIsSubmitting(true);
 
             const selectedProvince = provinces.find(
-                (item) => String(item.code) === province
+                (item) => item.code === province
             );
             const selectedDistrict = districts.find(
-                (item) => String(item.code) === district
+                (item) => item.code === district
             );
-            const selectedWard = wards.find((item) => String(item.code) === ward);
+            const selectedWard = wards.find((item) => item.code === ward);
 
             if (!selectedProvince || !selectedDistrict || !selectedWard) {
                 throw new Error("Không tìm thấy thông tin địa chỉ đã chọn");
@@ -224,7 +277,7 @@ export default function RegisterPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {provinces.map((item) => (
-                                            <SelectItem key={item.code} value={String(item.code)}>
+                                            <SelectItem key={item.code} value={item.code}>
                                                 {item.name}
                                             </SelectItem>
                                         ))}
@@ -256,7 +309,7 @@ export default function RegisterPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {districts.map((item) => (
-                                            <SelectItem key={item.code} value={String(item.code)}>
+                                            <SelectItem key={item.code} value={item.code}>
                                                 {item.name}
                                             </SelectItem>
                                         ))}
@@ -281,7 +334,7 @@ export default function RegisterPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {wards.map((item) => (
-                                            <SelectItem key={item.code} value={String(item.code)}>
+                                            <SelectItem key={item.code} value={item.code}>
                                                 {item.name}
                                             </SelectItem>
                                         ))}

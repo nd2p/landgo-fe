@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { ChevronDown, Locate } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,10 +13,17 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { SelectGroup } from "@radix-ui/react-select";
-import { useLocationData } from "@/features/search/location.hooks";
+import {
+    getDistrictsService,
+    getProvinceService,
+    getWardsService,
+} from "@/features/location/location.service";
+import { IDistrict, IProvince, IWard } from "@/features/location/location.type";
 
 export default function FilterDropdown() {
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const dropdownRef = useRef<HTMLDivElement>(null);
     const [isOpen, setIsOpen] = useState(false);
     const [province, setProvince] = useState("");
@@ -24,22 +31,114 @@ export default function FilterDropdown() {
     const [ward, setWard] = useState("");
     const [street, setStreet] = useState("");
     const [isSearching, setIsSearching] = useState(false);
+    const skipNextPathResetRef = useRef(false);
+    const searchQueryKey = searchParams.toString();
 
-    const {
-        provinces,
-        districts,
-        wards,
-        isLoadingProvinces,
-        isLoadingDistricts,
-        isLoadingWards,
-        fetchDistricts,
-        fetchWards,
-    } = useLocationData();
+    const [provinces, setProvinces] = useState<IProvince[]>([]);
+    const [districts, setDistricts] = useState<IDistrict[]>([]);
+    const [wards, setWards] = useState<IWard[]>([]);
+    const [isLoadingProvinces, setIsLoadingProvinces] = useState(true);
+    const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
+    const [isLoadingWards, setIsLoadingWards] = useState(false);
+
+    const provinceName = useMemo(
+        () => provinces.find((prov) => prov.code === province)?.name ?? "",
+        [province, provinces]
+    );
+    const districtName = useMemo(
+        () => districts.find((dist) => dist.code === district)?.name ?? "",
+        [district, districts]
+    );
+    const wardName = useMemo(
+        () => wards.find((w) => w.code === ward)?.name ?? "",
+        [ward, wards]
+    );
+
+    useEffect(() => {
+        const fetchProvinces = async () => {
+            setIsLoadingProvinces(true);
+            try {
+                const data = await getProvinceService();
+                setProvinces(data);
+            } catch (error) {
+                console.error(error);
+                setProvinces([]);
+            } finally {
+                setIsLoadingProvinces(false);
+            }
+        };
+
+        fetchProvinces();
+    }, []);
+
+    const fetchDistricts = async (provinceId: string) => {
+        if (!provinceId) {
+            setDistricts([]);
+            return;
+        }
+
+        setIsLoadingDistricts(true);
+        try {
+            const data = await getDistrictsService(provinceId);
+            setDistricts(data);
+        } catch (error) {
+            console.error(error);
+            setDistricts([]);
+        } finally {
+            setIsLoadingDistricts(false);
+        }
+    };
+
+    const fetchWards = async (districtId: string) => {
+        if (!districtId) {
+            setWards([]);
+            return;
+        }
+
+        setIsLoadingWards(true);
+        try {
+            const data = await getWardsService(districtId);
+            setWards(data);
+        } catch (error) {
+            console.error(error);
+            setWards([]);
+        } finally {
+            setIsLoadingWards(false);
+        }
+    };
+
+    const filterButtonLabel = useMemo(() => {
+        const streetName = street.trim();
+
+        if (streetName) {
+            return [streetName, districtName, provinceName].filter(Boolean).join(", ");
+        }
+
+        if (wardName) {
+            return [wardName, districtName, provinceName].filter(Boolean).join(", ");
+        }
+
+        if (districtName) {
+            return [districtName, provinceName].filter(Boolean).join(", ");
+        }
+
+        if (provinceName) {
+            return provinceName;
+        }
+
+        return "Bộ lọc";
+    }, [districtName, provinceName, street, wardName]);
 
     // Handle click outside to close dropdown
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+            const target = event.target as Node;
+            const targetElement = target as Element | null;
+            if (targetElement?.closest('[data-slot="select-content"]')) {
+                return;
+            }
+
+            if (dropdownRef.current && !dropdownRef.current.contains(target)) {
                 setIsOpen(false);
             }
         };
@@ -53,17 +152,37 @@ export default function FilterDropdown() {
         };
     }, [isOpen]);
 
+    useEffect(() => {
+        if (skipNextPathResetRef.current) {
+            skipNextPathResetRef.current = false;
+            return;
+        }
+
+        setIsOpen(false);
+        setProvince("");
+        setDistrict("");
+        setWard("");
+        setStreet("");
+    }, [pathname, searchQueryKey]);
+
     const handleProvinceChange = (value: string) => {
         setProvince(value);
         setDistrict("");
         setWard("");
-        void fetchDistricts(value);
+        setDistricts([]);
+        setWards([]);
+
+        const selectedProvince = provinces.find((item) => item.code === value);
+        fetchDistricts(selectedProvince?._id ?? "");
     };
 
     const handleDistrictChange = (value: string) => {
         setDistrict(value);
         setWard("");
-        void fetchWards(value);
+        setWards([]);
+
+        const selectedDistrict = districts.find((item) => item.code === value);
+        fetchWards(selectedDistrict?._id ?? "");
     };
 
     const handleSearch = async () => {
@@ -71,13 +190,19 @@ export default function FilterDropdown() {
         try {
             // Build search params
             const params = new URLSearchParams();
-            if (province) params.append("province", province);
-            if (district) params.append("district", district);
-            if (ward) params.append("ward", ward);
-            if (street) params.append("street", street);
+            const selectedProvince = provinces.find((item) => item.code === province);
+            const selectedDistrict = districts.find((item) => item.code === district);
+            const selectedWard = wards.find((item) => item.code === ward);
+
+            if (selectedProvince?._id) params.append("province", selectedProvince._id);
+            if (selectedDistrict?._id) params.append("district", selectedDistrict._id);
+            if (selectedWard?._id) params.append("ward", selectedWard._id);
+            if (street.trim()) params.append("addressDetail", street.trim());
 
             // Redirect to search or estates page with filters
             const searchQuery = params.toString();
+            skipNextPathResetRef.current = true;
+
             if (searchQuery) {
                 router.push(`/estates?${searchQuery}`);
             } else {
@@ -99,7 +224,7 @@ export default function FilterDropdown() {
                 aria-label="Open filter"
             >
                 <Locate className="h-4 w-4" />
-                Bộ lọc
+                <span className="max-w-52 truncate text-left">{filterButtonLabel}</span>
                 <ChevronDown className="h-4 w-4" />
             </Button>
 
@@ -124,7 +249,7 @@ export default function FilterDropdown() {
                                         {provinces.map((prov) => (
                                             <SelectItem
                                                 key={prov.code}
-                                                value={String(prov.code)}
+                                                value={prov.code}
                                             >
                                                 {prov.name}
                                             </SelectItem>
@@ -156,7 +281,7 @@ export default function FilterDropdown() {
                                         {districts.map((dist) => (
                                             <SelectItem
                                                 key={dist.code}
-                                                value={String(dist.code)}
+                                                value={dist.code}
                                             >
                                                 {dist.name}
                                             </SelectItem>
@@ -182,7 +307,7 @@ export default function FilterDropdown() {
                                 <SelectContent>
                                     <SelectGroup>
                                         {wards.map((w) => (
-                                            <SelectItem key={w.code} value={String(w.code)}>
+                                            <SelectItem key={w.code} value={w.code}>
                                                 {w.name}
                                             </SelectItem>
                                         ))}

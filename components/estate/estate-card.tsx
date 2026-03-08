@@ -4,99 +4,16 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { BedDouble, Bath, MapPin, Eye, MessageCircle, CircleDollarSign, ThumbsUp, ThumbsDown } from 'lucide-react'
 
-import type { Estate } from '@/features/estate/estate.types'
+import { PinLevel, PropertyTypeLabel, type EstateCardProps, type PropertyType } from '@/features/estate/estate.types'
 import AuthorBadge from '@/components/estate/author-badge'
 import Image from 'next/image'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import usersData from '@/mocks/users.json'
-
-interface EstateCardProps {
-    estate: Estate
-    viewMode?: 'list' | 'grid'
-}
-
-interface User {
-    _id: string
-    name: string
-    avatar: string | null
-    phone: string | null
-}
-
-const users = usersData as User[]
-
-enum PinLevel {
-    VIP = 1,
-    SUPER = 2,
-}
+import { formatPrice, formatPricePerSqm, getPinLevelVariant } from '@/components/estate/estate.utils'
 
 const PIN_LEVEL_LABEL: Record<PinLevel, string> = {
     [PinLevel.VIP]: 'VIP',
     [PinLevel.SUPER]: 'SUPER',
-}
-
-const STATUS_LABEL: Record<Estate['status'], string> = {
-    Approved: 'Da duyet',
-    Pending: 'Cho duyet',
-    Rejected: 'Tu choi',
-}
-
-function formatPrice(price: number) {
-    if (price >= 1_000_000_000) {
-        const valueInBillions = price / 1_000_000_000
-        return `${new Intl.NumberFormat('vi-VN', {
-            minimumFractionDigits: valueInBillions % 1 === 0 ? 0 : 1,
-            maximumFractionDigits: 1,
-        }).format(valueInBillions)} tỷ`
-    }
-
-    if (price >= 1_000_000) {
-        const valueInMillions = price / 1_000_000
-        return `${new Intl.NumberFormat('vi-VN', {
-            minimumFractionDigits: valueInMillions % 1 === 0 ? 0 : 1,
-            maximumFractionDigits: 1,
-        }).format(valueInMillions)} triệu`
-    }
-
-    return `${new Intl.NumberFormat('vi-VN').format(price)} VND`
-}
-
-function formatPricePerSqm(price: number, area: number) {
-    if (!area) {
-        return 'N/A'
-    }
-
-    const value = price / area
-    return `${new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND',
-        notation: 'compact',
-        maximumFractionDigits: 1,
-    }).format(value)}/m2`
-}
-
-function getStatusVariant(status: Estate['status']) {
-    if (status === 'Approved') {
-        return 'success'
-    }
-
-    if (status === 'Pending') {
-        return 'secondary'
-    }
-
-    return 'destructive'
-}
-
-function getPinLevelVariant(pinLevel: number | null) {
-    if (pinLevel === PinLevel.VIP) {
-        return 'default'
-    }
-
-    if (pinLevel === PinLevel.SUPER) {
-        return 'destructive'
-    }
-
-    return undefined
 }
 
 export default function EstateCard({ estate, viewMode = 'list' }: EstateCardProps) {
@@ -107,8 +24,9 @@ export default function EstateCard({ estate, viewMode = 'list' }: EstateCardProp
     const coverImage =
         estate.images[0] ||
         'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=900&q=80'
-    const author = users.find((user) => user._id === estate.author)
+    const author = estate.author
     const isLand = estate.propertyType.trim().toLowerCase() === 'land'
+    const propertyTypeLabel = PropertyTypeLabel[estate.propertyType as PropertyType] ?? estate.propertyType
     const isGrid = viewMode === 'grid'
 
     const handleUpvote = () => {
@@ -190,7 +108,7 @@ export default function EstateCard({ estate, viewMode = 'list' }: EstateCardProp
                         <span className="text-xl font-bold text-red-700">{formatPrice(estate.price)}</span>
                         <span className="text-black font-bold">{estate.area} m2</span>
                         <span className="text-black font-bold">{formatPricePerSqm(estate.price, estate.area)}</span>
-                        <Badge variant="outline">{estate.propertyType}</Badge>
+                        <Badge variant="outline">{propertyTypeLabel}</Badge>
                     </div>
 
                     <div className="flex items-center gap-1 text-sm text-blue-600">
