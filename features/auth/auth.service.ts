@@ -3,6 +3,7 @@ import { removeAccessToken, setAccessToken } from "@/lib/auth-token";
 import { AxiosError } from "axios";
 import type { AuthRole } from "@/lib/auth-role";
 import { getMeApi } from "./auth.api";
+import { getAuthErrorMessage, getAuthSuccessMessage } from "./auth-errors";
 
 export type RegisterPayload = {
   phone: string;
@@ -84,9 +85,11 @@ export const registerUser = async (
 
     return response.data;
   } catch (error) {
-    const axiosError = error as AxiosError<{ message?: string }>;
+    const axiosError = error as AxiosError<{ message?: string; code?: string }>;
+    const errorCode = axiosError.response?.data?.code;
     const backendMessage = axiosError.response?.data?.message;
-    throw new Error(backendMessage || "Đăng ký thất bại");
+    const translatedMessage = getAuthErrorMessage(errorCode, backendMessage);
+    throw new Error(translatedMessage);
   }
 };
 
@@ -101,9 +104,11 @@ export const loginUser = async (payload: LoginPayload): Promise<LoginResponse> =
     setAccessToken(response.data.data.accessToken);
     return response.data;
   } catch (error) {
-    const axiosError = error as AxiosError<{ message?: string }>;
+    const axiosError = error as AxiosError<{ message?: string; code?: string }>;
+    const errorCode = axiosError.response?.data?.code;
     const backendMessage = axiosError.response?.data?.message;
-    throw new Error(backendMessage || "Đăng nhập thất bại");
+    const translatedMessage = getAuthErrorMessage(errorCode, backendMessage);
+    throw new Error(translatedMessage);
   }
 };
 
@@ -117,9 +122,11 @@ export const logoutUser = async (): Promise<void> => {
       throw new Error(response.data?.message || "Đăng xuất thất bại");
     }
   } catch (error) {
-    const axiosError = error as AxiosError<{ message?: string }>;
+    const axiosError = error as AxiosError<{ message?: string; code?: string }>;
+    const errorCode = axiosError.response?.data?.code;
     const backendMessage = axiosError.response?.data?.message;
-    throw new Error(backendMessage || "Đăng xuất thất bại");
+    const translatedMessage = getAuthErrorMessage(errorCode, backendMessage);
+    throw new Error(translatedMessage);
   } finally {
     removeAccessToken();
   }
@@ -138,11 +145,17 @@ export const requestPasswordResetOtp = async (
       throw new Error(response.data?.message || "Gửi mã OTP thất bại");
     }
 
-    return response.data;
+    // Translate success message to Vietnamese
+    return {
+      ...response.data,
+      message: getAuthSuccessMessage(response.data.message),
+    };
   } catch (error) {
-    const axiosError = error as AxiosError<{ message?: string }>;
+    const axiosError = error as AxiosError<{ message?: string; code?: string }>;
+    const errorCode = axiosError.response?.data?.code;
     const backendMessage = axiosError.response?.data?.message;
-    throw new Error(backendMessage || "Gửi mã OTP thất bại");
+    const translatedMessage = getAuthErrorMessage(errorCode, backendMessage);
+    throw new Error(translatedMessage);
   }
 };
 
@@ -161,9 +174,11 @@ export const resetPasswordWithOtp = async (
 
     return response.data;
   } catch (error) {
-    const axiosError = error as AxiosError<{ message?: string }>;
+    const axiosError = error as AxiosError<{ message?: string; code?: string }>;
+    const errorCode = axiosError.response?.data?.code;
     const backendMessage = axiosError.response?.data?.message;
-    throw new Error(backendMessage || "Đổi mật khẩu thất bại");
+    const translatedMessage = getAuthErrorMessage(errorCode, backendMessage);
+    throw new Error(translatedMessage);
   }
 };
 
@@ -182,9 +197,11 @@ export const verifyEmailOtp = async (
 
     return response.data;
   } catch (error) {
-    const axiosError = error as AxiosError<{ message?: string }>;
+    const axiosError = error as AxiosError<{ message?: string; code?: string }>;
+    const errorCode = axiosError.response?.data?.code;
     const backendMessage = axiosError.response?.data?.message;
-    throw new Error(backendMessage || "Xác thực email thất bại");
+    const translatedMessage = getAuthErrorMessage(errorCode, backendMessage);
+    throw new Error(translatedMessage);
   }
 };
 
