@@ -1,22 +1,44 @@
 "use client"
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { List, LayoutGrid } from 'lucide-react'
 
 import EstateCard from '@/components/estate/estate-card'
 import EstateFilter from '@/components/estate/estate-filter'
 import { Button } from '@/components/ui/button'
-import type { Estate } from '@/features/estate/estate.types'
-import estatesData from '@/mocks/estates.json'
-
-const estates = estatesData as Estate[]
+import { Loading } from '@/components/ui/loading'
+import { getPosts } from '@/features/estate/estate.api'
+import { Estate, GetPostsParams, type EstateCardViewMode } from '@/features/estate/estate.types'
 
 function formatTotal(total: number) {
     return new Intl.NumberFormat('vi-VN').format(total)
 }
 
 export default function EstatesPage() {
-    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
+    const [viewMode, setViewMode] = useState<EstateCardViewMode>('list')
+    const [estates, setEstates] = useState<Estate[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+
+    const fetchPosts = async (filters: GetPostsParams = {}) => {
+        setIsLoading(true)
+        try {
+            const posts = await getPosts(filters)
+            setEstates(posts)
+        } catch (error) {
+            console.log(error);
+            setEstates([])
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const handleApplyFilters = (filters: GetPostsParams) => {
+        void fetchPosts(filters)
+    }
+
+    useEffect(() => {
+        void fetchPosts()
+    }, [])
 
     return (
         <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 md:py-8 mb-20">
@@ -31,7 +53,7 @@ export default function EstatesPage() {
             </div>
 
             <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <EstateFilter />
+                <EstateFilter onApply={handleApplyFilters} />
 
                 <div className="inline-flex items-center gap-1 self-start rounded-md border border-slate-300 bg-white p-1 lg:self-auto">
                     <Button
@@ -57,11 +79,21 @@ export default function EstatesPage() {
                 </div>
             </div>
 
-            <section className={viewMode === 'grid' ? 'grid gap-4 md:grid-cols-2 xl:grid-cols-3' : 'space-y-4'}>
-                {estates.map((estate) => (
-                    <EstateCard key={estate._id} estate={estate} viewMode={viewMode} />
-                ))}
-            </section>
+            {isLoading ? (
+                <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 md:py-8">
+                    <Loading
+                        label="Đang tải danh sách bất động sản..."
+                        fullScreen={false}
+                        className="min-h-[40vh] items-center justify-center"
+                    />
+                </main>
+            ) : (
+                <section className={viewMode === 'grid' ? 'grid gap-4 md:grid-cols-2 xl:grid-cols-3' : 'space-y-4'}>
+                    {estates.map((estate) => (
+                        <EstateCard key={estate._id} estate={estate} viewMode={viewMode} />
+                    ))}
+                </section>
+            )}
         </main>
     )
 }

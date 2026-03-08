@@ -1,11 +1,13 @@
+"use client"
+
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Building2, House, MapPinned } from 'lucide-react'
 
 import EstateCard from '@/components/estate/estate-card'
+import { Loading } from '@/components/ui/loading'
+import { getPosts } from '@/features/estate/estate.api'
 import type { Estate } from '@/features/estate/estate.types'
-import estatesData from '@/mocks/estates.json'
-
-const estates = estatesData as Estate[]
 
 const quickCategories = [
   {
@@ -28,9 +30,43 @@ const quickCategories = [
   },
 ]
 
-const highlightedEstates = estates.slice(0, 3)
-
 export default function HomePage() {
+  const [estates, setEstates] = useState<Estate[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const fetchPosts = async () => {
+      try {
+        const posts = await getPosts()
+
+        if (isMounted) {
+          setEstates(posts)
+        }
+      } catch {
+        if (isMounted) {
+          setEstates([])
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    fetchPosts()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const highlightedEstates = useMemo(
+    () => estates.filter((estate) => estate.pinLevel === 2).slice(0, 3),
+    [estates]
+  )
+
   return (
     <div className="bg-slate-50">
       <section className="relative overflow-hidden border-b border-slate-200 bg-[radial-gradient(circle_at_12%_18%,#fef3c7_0%,transparent_38%),radial-gradient(circle_at_92%_15%,#bfdbfe_0%,transparent_30%),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)]">
@@ -116,11 +152,23 @@ export default function HomePage() {
           </Link>
         </div>
 
-        <div className="space-y-4">
-          {highlightedEstates.map((estate) => (
-            <EstateCard key={estate._id} estate={estate} viewMode="list" />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="bg-slate-50">
+            <section className="mx-auto max-w-6xl py-10 md:py-12">
+              <Loading
+                label="Đang tải dữ liệu..."
+                fullScreen={false}
+                className="items-center justify-center"
+              />
+            </section>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {highlightedEstates.map((estate) => (
+              <EstateCard key={estate._id} estate={estate} viewMode="list" />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   )

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { ChevronDown, Locate } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +17,8 @@ import { useLocationData } from "@/features/search/location.hooks";
 
 export default function FilterDropdown() {
     const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
     const dropdownRef = useRef<HTMLDivElement>(null);
     const [isOpen, setIsOpen] = useState(false);
     const [province, setProvince] = useState("");
@@ -24,6 +26,8 @@ export default function FilterDropdown() {
     const [ward, setWard] = useState("");
     const [street, setStreet] = useState("");
     const [isSearching, setIsSearching] = useState(false);
+    const skipNextPathResetRef = useRef(false);
+    const searchQueryKey = searchParams.toString();
 
     const {
         provinces,
@@ -36,10 +40,51 @@ export default function FilterDropdown() {
         fetchWards,
     } = useLocationData();
 
+    const provinceName = useMemo(
+        () => provinces.find((prov) => String(prov.code) === province)?.name ?? "",
+        [province, provinces]
+    );
+    const districtName = useMemo(
+        () => districts.find((dist) => String(dist.code) === district)?.name ?? "",
+        [district, districts]
+    );
+    const wardName = useMemo(
+        () => wards.find((w) => String(w.code) === ward)?.name ?? "",
+        [ward, wards]
+    );
+
+    const filterButtonLabel = useMemo(() => {
+        const streetName = street.trim();
+
+        if (streetName) {
+            return [streetName, districtName, provinceName].filter(Boolean).join(", ");
+        }
+
+        if (wardName) {
+            return [wardName, districtName, provinceName].filter(Boolean).join(", ");
+        }
+
+        if (districtName) {
+            return [districtName, provinceName].filter(Boolean).join(", ");
+        }
+
+        if (provinceName) {
+            return provinceName;
+        }
+
+        return "Bộ lọc";
+    }, [districtName, provinceName, street, wardName]);
+
     // Handle click outside to close dropdown
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+            const target = event.target as Node;
+            const targetElement = target as Element | null;
+            if (targetElement?.closest('[data-slot="select-content"]')) {
+                return;
+            }
+
+            if (dropdownRef.current && !dropdownRef.current.contains(target)) {
                 setIsOpen(false);
             }
         };
@@ -52,6 +97,19 @@ export default function FilterDropdown() {
             document.removeEventListener("mousedown", handleClickOutside);
         };
     }, [isOpen]);
+
+    useEffect(() => {
+        if (skipNextPathResetRef.current) {
+            skipNextPathResetRef.current = false;
+            return;
+        }
+
+        setIsOpen(false);
+        setProvince("");
+        setDistrict("");
+        setWard("");
+        setStreet("");
+    }, [pathname, searchQueryKey]);
 
     const handleProvinceChange = (value: string) => {
         setProvince(value);
@@ -78,6 +136,8 @@ export default function FilterDropdown() {
 
             // Redirect to search or estates page with filters
             const searchQuery = params.toString();
+            skipNextPathResetRef.current = true;
+
             if (searchQuery) {
                 router.push(`/estates?${searchQuery}`);
             } else {
@@ -99,7 +159,7 @@ export default function FilterDropdown() {
                 aria-label="Open filter"
             >
                 <Locate className="h-4 w-4" />
-                Bộ lọc
+                <span className="max-w-52 truncate text-left">{filterButtonLabel}</span>
                 <ChevronDown className="h-4 w-4" />
             </Button>
 
