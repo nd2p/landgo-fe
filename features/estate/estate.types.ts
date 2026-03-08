@@ -1,3 +1,18 @@
+// Estate types
+export enum PropertyType {
+  Apartment = "apartment",
+  House = "house",
+  Land = "land",
+  Villa = "villa",
+}
+
+export const PropertyTypeLabel: Record<PropertyType, string> = {
+  [PropertyType.Apartment]: "Chung cư",
+  [PropertyType.House]: "Nhà ở",
+  [PropertyType.Land]: "Đất nền",
+  [PropertyType.Villa]: "Biệt thự",
+};
+
 export type EstateStatus = "Pending" | "Approved" | "Rejected";
 
 export interface Estate {
