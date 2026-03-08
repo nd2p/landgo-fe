@@ -1,19 +1,18 @@
 import { Input } from "@/components/ui/input";
 
-export default function ContactSection() {
+type Props = {
+  phone: string;
+  name: string;
+  email: string;
+};
+
+export default function ContactSection({ phone, name, email }: Props) {
   return (
-    <section className="space-y-4">
-      <h3 className="font-semibold text-[#8b5a00]">Liên hệ người đăng</h3>
-
-      <label className="flex items-center gap-2">
-        <Input type="radio" name="contact" />
-        Chính chủ
-      </label>
-
-      <div className="grid grid-cols-2 gap-4">
-        <Input placeholder="Số điện thoại" />
-        <Input placeholder="Họ tên" />
-      </div>
+    <section className="bg-white p-6 rounded-xl shadow space-y-4">
+      <h2 className="text-lg font-semibold">Thông tin liên hệ</h2>
+      <Input value={name ?? ""} readOnly placeholder="Họ tên" />
+      <Input value={email ?? ""} readOnly placeholder="Email" />
+      <Input value={phone ?? ""} readOnly placeholder="Số điện thoại" />
     </section>
   );
 }

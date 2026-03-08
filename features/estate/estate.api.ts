@@ -1,32 +1,23 @@
-import { CreatePostInput } from "./estate.types";
+import { CreatePostInput } from "./estate.validation";
 import axiosClient from "@/lib/axios";
 
-// Estate API
-
-export const createPostsApi = (
-  body: CreatePostInput,
-  files?: {
-    images?: File[];
-    redBookImages?: File[];
-  },
-) => {
+export const createPostsApi = (body: CreatePostInput) => {
   const formData = new FormData();
 
   const { images, redBookImages, ...textFields } = body;
 
   Object.entries(textFields).forEach(([key, value]) => {
-    if (value !== undefined) {
-      formData.append(key, String(value));
-    }
+    if (value !== undefined) formData.append(key, String(value));
   });
 
-  files?.images?.forEach((file) => {
-    formData.append("images", file);
-  });
+  images?.forEach((file) => formData.append("images", file));
+  redBookImages?.forEach((file) => formData.append("redBookImages", file));
 
-  files?.redBookImages?.forEach((file) => {
-    formData.append("redBookImages", file);
-  });
+  for (const [key, value] of formData.entries()) {
+    console.log(key, value);
+  }
 
-  return axiosClient.post("/posts", formData);
+  return axiosClient.post("/posts", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 };
