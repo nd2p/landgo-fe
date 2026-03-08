@@ -40,7 +40,7 @@ export default function CreatePostPage() {
     },
   });
 
-  const { handleSubmit, setValue, watch } = form;
+  const { handleSubmit, setValue, watch } = form; 
 
   useEffect(() => {
     getProvinceService().then(setProvinces).catch(console.error);

@@ -82,13 +82,13 @@ export default function ImageUploader({ images, setImages, max = 10 }: Props) {
                 className="w-24 h-24 object-cover rounded-lg border"
               />
 
-              <button
-                type="button"
+              <Button
+              variant={"destructive"}
                 onClick={() => removeImage(i)}
-                className="absolute -top-2 -right-2 bg-black text-white rounded-full p-1"
+                className="absolute -top-2 -right-2 bg-black text-white rounded-full"
               >
                 <X size={14} />
-              </button>
+              </Button>
             </div>
           ))}
         </div>
