@@ -124,6 +124,22 @@ export const getPosts = async (
       searchParams.set("maxArea", filters.maxArea.toString());
     }
 
+    if (filters.province) {
+      searchParams.set("province", filters.province);
+    }
+
+    if (filters.district) {
+      searchParams.set("district", filters.district);
+    }
+
+    if (filters.ward) {
+      searchParams.set("ward", filters.ward);
+    }
+
+    if (filters.addressDetail) {
+      searchParams.set("addressDetail", filters.addressDetail);
+    }
+
     const response = await axiosClient.get<GetPostsResponse>(
       searchParams.toString() ? `/posts?${searchParams.toString()}` : "/posts",
     );

@@ -13,7 +13,12 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { SelectGroup } from "@radix-ui/react-select";
-import { useLocationData } from "@/features/search/location.hooks";
+import {
+    getDistrictsService,
+    getProvinceService,
+    getWardsService,
+} from "@/features/location/location.service";
+import { IDistrict, IProvince, IWard } from "@/features/location/location.type";
 
 export default function FilterDropdown() {
     const router = useRouter();
@@ -29,29 +34,78 @@ export default function FilterDropdown() {
     const skipNextPathResetRef = useRef(false);
     const searchQueryKey = searchParams.toString();
 
-    const {
-        provinces,
-        districts,
-        wards,
-        isLoadingProvinces,
-        isLoadingDistricts,
-        isLoadingWards,
-        fetchDistricts,
-        fetchWards,
-    } = useLocationData();
+    const [provinces, setProvinces] = useState<IProvince[]>([]);
+    const [districts, setDistricts] = useState<IDistrict[]>([]);
+    const [wards, setWards] = useState<IWard[]>([]);
+    const [isLoadingProvinces, setIsLoadingProvinces] = useState(true);
+    const [isLoadingDistricts, setIsLoadingDistricts] = useState(false);
+    const [isLoadingWards, setIsLoadingWards] = useState(false);
 
     const provinceName = useMemo(
-        () => provinces.find((prov) => String(prov.code) === province)?.name ?? "",
+        () => provinces.find((prov) => prov.code === province)?.name ?? "",
         [province, provinces]
     );
     const districtName = useMemo(
-        () => districts.find((dist) => String(dist.code) === district)?.name ?? "",
+        () => districts.find((dist) => dist.code === district)?.name ?? "",
         [district, districts]
     );
     const wardName = useMemo(
-        () => wards.find((w) => String(w.code) === ward)?.name ?? "",
+        () => wards.find((w) => w.code === ward)?.name ?? "",
         [ward, wards]
     );
+
+    useEffect(() => {
+        const fetchProvinces = async () => {
+            setIsLoadingProvinces(true);
+            try {
+                const data = await getProvinceService();
+                setProvinces(data);
+            } catch (error) {
+                console.error(error);
+                setProvinces([]);
+            } finally {
+                setIsLoadingProvinces(false);
+            }
+        };
+
+        fetchProvinces();
+    }, []);
+
+    const fetchDistricts = async (provinceId: string) => {
+        if (!provinceId) {
+            setDistricts([]);
+            return;
+        }
+
+        setIsLoadingDistricts(true);
+        try {
+            const data = await getDistrictsService(provinceId);
+            setDistricts(data);
+        } catch (error) {
+            console.error(error);
+            setDistricts([]);
+        } finally {
+            setIsLoadingDistricts(false);
+        }
+    };
+
+    const fetchWards = async (districtId: string) => {
+        if (!districtId) {
+            setWards([]);
+            return;
+        }
+
+        setIsLoadingWards(true);
+        try {
+            const data = await getWardsService(districtId);
+            setWards(data);
+        } catch (error) {
+            console.error(error);
+            setWards([]);
+        } finally {
+            setIsLoadingWards(false);
+        }
+    };
 
     const filterButtonLabel = useMemo(() => {
         const streetName = street.trim();
@@ -115,13 +169,20 @@ export default function FilterDropdown() {
         setProvince(value);
         setDistrict("");
         setWard("");
-        void fetchDistricts(value);
+        setDistricts([]);
+        setWards([]);
+
+        const selectedProvince = provinces.find((item) => item.code === value);
+        fetchDistricts(selectedProvince?._id ?? "");
     };
 
     const handleDistrictChange = (value: string) => {
         setDistrict(value);
         setWard("");
-        void fetchWards(value);
+        setWards([]);
+
+        const selectedDistrict = districts.find((item) => item.code === value);
+        fetchWards(selectedDistrict?._id ?? "");
     };
 
     const handleSearch = async () => {
@@ -129,10 +190,14 @@ export default function FilterDropdown() {
         try {
             // Build search params
             const params = new URLSearchParams();
-            if (province) params.append("province", province);
-            if (district) params.append("district", district);
-            if (ward) params.append("ward", ward);
-            if (street) params.append("street", street);
+            const selectedProvince = provinces.find((item) => item.code === province);
+            const selectedDistrict = districts.find((item) => item.code === district);
+            const selectedWard = wards.find((item) => item.code === ward);
+
+            if (selectedProvince?._id) params.append("province", selectedProvince._id);
+            if (selectedDistrict?._id) params.append("district", selectedDistrict._id);
+            if (selectedWard?._id) params.append("ward", selectedWard._id);
+            if (street.trim()) params.append("addressDetail", street.trim());
 
             // Redirect to search or estates page with filters
             const searchQuery = params.toString();
@@ -184,7 +249,7 @@ export default function FilterDropdown() {
                                         {provinces.map((prov) => (
                                             <SelectItem
                                                 key={prov.code}
-                                                value={String(prov.code)}
+                                                value={prov.code}
                                             >
                                                 {prov.name}
                                             </SelectItem>
@@ -216,7 +281,7 @@ export default function FilterDropdown() {
                                         {districts.map((dist) => (
                                             <SelectItem
                                                 key={dist.code}
-                                                value={String(dist.code)}
+                                                value={dist.code}
                                             >
                                                 {dist.name}
                                             </SelectItem>
@@ -242,7 +307,7 @@ export default function FilterDropdown() {
                                 <SelectContent>
                                     <SelectGroup>
                                         {wards.map((w) => (
-                                            <SelectItem key={w.code} value={String(w.code)}>
+                                            <SelectItem key={w.code} value={w.code}>
                                                 {w.name}
                                             </SelectItem>
                                         ))}

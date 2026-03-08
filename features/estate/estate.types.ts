@@ -80,6 +80,10 @@ export type GetPostsParams = {
   propertyType?: string;
   minArea?: number;
   maxArea?: number;
+  province?: string;
+  district?: string;
+  ward?: string;
+  addressDetail?: string;
 };
 
 export type LocationObject = {

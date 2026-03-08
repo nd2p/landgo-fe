@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { List, LayoutGrid } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
 
 import EstateCard from '@/components/estate/estate-card'
 import EstateFilter from '@/components/estate/estate-filter'
@@ -15,6 +16,7 @@ function formatTotal(total: number) {
 }
 
 export default function EstatesPage() {
+    const searchParams = useSearchParams()
     const [viewMode, setViewMode] = useState<EstateCardViewMode>('list')
     const [estates, setEstates] = useState<Estate[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -37,8 +39,15 @@ export default function EstatesPage() {
     }
 
     useEffect(() => {
-        void fetchPosts()
-    }, [])
+        const urlFilters: GetPostsParams = {
+            province: searchParams.get('province') ?? undefined,
+            district: searchParams.get('district') ?? undefined,
+            ward: searchParams.get('ward') ?? undefined,
+            addressDetail: searchParams.get('addressDetail') ?? undefined,
+        }
+
+        void fetchPosts(urlFilters)
+    }, [searchParams])
 
     return (
         <main className="mx-auto w-full max-w-6xl px-4 py-6 md:px-6 md:py-8 mb-20">
