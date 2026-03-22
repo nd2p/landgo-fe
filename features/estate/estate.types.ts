@@ -41,6 +41,10 @@ export type Estate = {
   numberOfBathrooms: number;
   propertyType: string;
   legalStatus: string;
+  frontage?: number;
+  entryWidth?: number;
+  direction?: string;
+  floorNumber?: number;
   isNegotiable: boolean;
   images: string[];
   redBookImages: string[];

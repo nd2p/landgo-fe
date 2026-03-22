@@ -70,13 +70,17 @@ function mapPostToEstate(post: Estate): Estate {
     district: post.district,
     ward: post.ward,
     addressDetail: post.addressDetail,
-    lat: 0,
-    lng: 0,
-    numberOfBedrooms: 0,
-    numberOfBathrooms: 0,
+    lat: post.lat || 0,
+    lng: post.lng || 0,
+    numberOfBedrooms: post.numberOfBedrooms || 0,
+    numberOfBathrooms: post.numberOfBathrooms || 0,
     propertyType: post.propertyType,
     legalStatus: post.legalStatus,
-    isNegotiable: false,
+    frontage: post.frontage,
+    entryWidth: post.entryWidth,
+    direction: post.direction,
+    floorNumber: post.floorNumber,
+    isNegotiable: post.isNegotiable || false,
     images: post.images ?? [],
     redBookImages: post.redBookImages ?? [],
     author: mapAuthor(post.author),
@@ -155,5 +159,21 @@ export const getPosts = async (
     const axiosError = error as AxiosError<{ message?: string }>;
     const backendMessage = axiosError.response?.data?.message;
     throw new Error(backendMessage || "Failed to fetch posts from the server");
+  }
+};
+
+export const getEstateBySlug = async (slug: string): Promise<Estate> => {
+  try {
+    const response = await axiosClient.get<{ success: boolean; data: Estate; message?: string }>(`/posts/${slug}`);
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to fetch estate detail");
+    }
+
+    return mapPostToEstate(response.data.data);
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    const backendMessage = axiosError.response?.data?.message;
+    throw new Error(backendMessage || "Failed to fetch estate detail");
   }
 };

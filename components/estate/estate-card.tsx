@@ -61,10 +61,10 @@ export default function EstateCard({ estate, viewMode = 'list' }: EstateCardProp
 
     return (
         <article
-            className={`overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:shadow-md ${isGrid ? 'h-full' : 'md:h-50'
+            className={`relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:shadow-md ${isGrid ? 'h-full' : ''
                 }`}
         >
-            <div className={`grid gap-0 ${isGrid ? 'grid-cols-1' : 'md:h-full md:grid-cols-[300px_1fr]'}`}>
+            <div className={`grid gap-0 ${isGrid ? 'grid-cols-1' : 'h-full md:grid-cols-[300px_1fr]'}`}>
                 <Link href={`/estates/${estate._id}`} className="relative block h-full overflow-hidden bg-muted">
                     <Image
                         src={coverImage}
@@ -96,16 +96,16 @@ export default function EstateCard({ estate, viewMode = 'list' }: EstateCardProp
                     })()}
                 </Link>
 
-                <div className="flex flex-col gap-3 p-4 md:p-4">
+                <div className={`flex flex-col gap-2 p-4 md:p-4 ${isGrid ? 'pb-12' : ''}`}>
                     <Link
-                        href={`/estates/${estate._id}`}
-                        className="line-clamp-2 text-xl font-bold text-red-700 hover:underline"
+                        href={`/estates/${estate.slug}`}
+                        className="line-clamp-2 text-lg font-bold text-red-700 hover:underline"
                     >
                         {estate.title}
                     </Link>
 
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium">
-                        <span className="text-xl font-bold text-red-700">{formatPrice(estate.price)}</span>
+                        <span className="text-base font-bold text-red-700">{formatPrice(estate.price)}</span>
                         <span className="text-black font-bold">{estate.area} m2</span>
                         <span className="text-black font-bold">{formatPricePerSqm(estate.price, estate.area)}</span>
                         <Badge variant="outline">{propertyTypeLabel}</Badge>
@@ -144,37 +144,36 @@ export default function EstateCard({ estate, viewMode = 'list' }: EstateCardProp
                             <CircleDollarSign className="h-4 w-4" />
                             {estate.isNegotiable ? 'Có thương lượng' : 'Không thương lượng'}
                         </span>
-
-                        <div className="ml-auto inline-flex items-center gap-1">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={handleUpvote}
-                                className={`h-7 px-2 text-[11px] ${vote === 'up'
-                                    ? 'border-green-600 bg-green-600 text-white hover:bg-green-600 hover:text-white'
-                                    : 'text-slate-600'
-                                    }`}
-                                aria-label="Upvote estate"
-                            >
-                                <ThumbsUp className="h-3.5 w-3.5" />
-                                <span>{upvoteCount}</span>
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={handleDownvote}
-                                className={`h-7 px-2 text-[11px] ${vote === 'down'
-                                    ? 'border-red-600 bg-red-600 text-white hover:bg-red-600 hover:text-white'
-                                    : 'text-slate-600'
-                                    }`}
-                                aria-label="Downvote estate"
-                            >
-                                <ThumbsDown className="h-3.5 w-3.5" />
-                                <span>{downvoteCount}</span>
-                            </Button>
-                        </div>
+                    </div>
+                    <div className={`inline-flex items-center gap-1 ${isGrid ? 'absolute bottom-4 right-4' : 'ml-auto'}`}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleUpvote}
+                            className={`h-7 px-2 text-[11px] ${vote === 'up'
+                                ? 'border-green-600 bg-green-600 text-white hover:bg-green-600 hover:text-white'
+                                : 'text-slate-600'
+                                }`}
+                            aria-label="Upvote estate"
+                        >
+                            <ThumbsUp className="h-3.5 w-3.5" />
+                            <span>{upvoteCount}</span>
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleDownvote}
+                            className={`h-7 px-2 text-[11px] ${vote === 'down'
+                                ? 'border-red-600 bg-red-600 text-white hover:bg-red-600 hover:text-white'
+                                : 'text-slate-600'
+                                }`}
+                            aria-label="Downvote estate"
+                        >
+                            <ThumbsDown className="h-3.5 w-3.5" />
+                            <span>{downvoteCount}</span>
+                        </Button>
                     </div>
                 </div>
             </div>
