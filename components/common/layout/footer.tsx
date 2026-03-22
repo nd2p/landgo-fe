@@ -145,7 +145,7 @@ export default function Footer() {
                             />
                             <Button
                                 size="icon"
-                                className="h-10 w-10 bg-red-500 hover:bg-red-600"
+                                className="h-10 w-10"
                             >
                                 <Send className="h-4 w-4" />
                             </Button>
