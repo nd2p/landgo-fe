@@ -121,12 +121,21 @@ export default function Navbar() {
             )}
           </div>
           {isLoggedIn && (
-            <Button
-              asChild
-              className="inline-flex shadow-sm text-xs sm:text-sm px-4 h-9"
-            >
-              <Link href="/estates/create">Đăng tin</Link>
-            </Button>
+            <>
+              <Button
+                asChild
+                className="inline-flex shadow-sm text-xs sm:text-sm px-4 h-9"
+              >
+                <Link href="/estates/create">Đăng tin</Link>
+              </Button>
+              <Button
+                asChild
+                variant={"outline"}
+                className="inline-flex shadow-sm text-xs sm:text-sm px-4 h-9"
+              >
+                <Link href="/my-estates">Tin của tôi</Link>
+              </Button>
+            </>
           )}
         </div>
       </nav>

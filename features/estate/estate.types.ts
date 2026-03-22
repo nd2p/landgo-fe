@@ -90,6 +90,12 @@ export type GetPostsParams = {
   addressDetail?: string;
 };
 
+export type GetMyPostsParams = {
+  status?: string;
+  page?: number;
+  limit?: number;
+};
+
 export type LocationObject = {
   _id: string;
   name: string;

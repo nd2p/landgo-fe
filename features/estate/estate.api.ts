@@ -7,6 +7,7 @@ import type {
   EstateStatus,
   GetPostsParams,
   GetPostsResponse,
+  GetMyPostsParams,
 } from "./estate.types";
 
 function mapAuthor(author?: AuthorObject): AuthorObject | undefined {
@@ -185,4 +186,43 @@ export const createPostsApi = (body: CreatePostInput) => {
   return axiosClient.post("/posts", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+};
+
+export const getMyPosts = async (
+  filters: GetMyPostsParams = {},
+): Promise<{ data: Estate[]; pagination: GetPostsResponse["pagination"] }> => {
+  try {
+    const searchParams = new URLSearchParams();
+
+    if (filters.status) {
+      searchParams.set("status", filters.status);
+    }
+
+    if (typeof filters.page === "number") {
+      searchParams.set("page", filters.page.toString());
+    }
+
+    if (typeof filters.limit === "number") {
+      searchParams.set("limit", filters.limit.toString());
+    }
+
+    const response = await axiosClient.get<GetPostsResponse>(
+      searchParams.toString() ? `/posts/my?${searchParams.toString()}` : "/posts/my",
+    );
+
+    if (!response.data?.success) {
+      throw new Error(
+        response.data?.message || "Failed to fetch user posts from the server",
+      );
+    }
+
+    return {
+      data: (response.data.data ?? []).map(mapPostToEstate),
+      pagination: response.data.pagination,
+    };
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    const backendMessage = axiosError.response?.data?.message;
+    throw new Error(backendMessage || "Failed to fetch user posts from the server");
+  }
 };
