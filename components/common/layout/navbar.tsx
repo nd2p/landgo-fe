@@ -66,9 +66,11 @@ export default function Navbar() {
                             </Button>
                         </>
                     )}
-                    <Button asChild>
-                        <Link href="/estates/create">Đăng tin</Link>
-                    </Button>
+                    {isLoggedIn && (
+                        <Button asChild>
+                            <Link href="/estates/create">Đăng tin</Link>
+                        </Button>
+                    )}
                 </div>
             </nav>
         </header>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from 'react'
+import type { MouseEvent } from 'react'
 import Link from 'next/link'
 import { Building2, House, MapPinned } from 'lucide-react'
 
@@ -8,6 +9,7 @@ import EstateCard from '@/components/estate/estate-card'
 import { Loading } from '@/components/ui/loading'
 import { getPosts } from '@/features/estate/estate.api'
 import type { Estate } from '@/features/estate/estate.types'
+import { isLoggedIn as hasAccessToken } from '@/lib/auth-token'
 
 const quickCategories = [
   {
@@ -33,6 +35,13 @@ const quickCategories = [
 export default function HomePage() {
   const [estates, setEstates] = useState<Estate[]>([])
   const [isLoading, setIsLoading] = useState(true)
+
+  const handleCreateEstateClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!hasAccessToken()) {
+      event.preventDefault()
+      alert('Vui lòng đăng nhập để sử dụng tính năng này.')
+    }
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -93,6 +102,7 @@ export default function HomePage() {
             </Link>
             <Link
               href="/estates/create"
+              onClick={handleCreateEstateClick}
               className="inline-flex h-10 items-center rounded-md border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-800 transition hover:bg-slate-100"
             >
               Đăng tin ngay
