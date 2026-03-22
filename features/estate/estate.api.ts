@@ -9,27 +9,6 @@ import type {
   GetPostsResponse,
 } from "./estate.types";
 
-export const createPostsApi = (body: CreatePostInput) => {
-  const formData = new FormData();
-
-  const { images, redBookImages, ...textFields } = body;
-
-  Object.entries(textFields).forEach(([key, value]) => {
-    if (value !== undefined) formData.append(key, String(value));
-  });
-
-  images?.forEach((file) => formData.append("images", file));
-  redBookImages?.forEach((file) => formData.append("redBookImages", file));
-
-  for (const [key, value] of formData.entries()) {
-    console.log(key, value);
-  }
-
-  return axiosClient.post("/posts", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-};
-
 function mapAuthor(author?: AuthorObject): AuthorObject | undefined {
   if (!author?._id) {
     return undefined;
@@ -164,10 +143,16 @@ export const getPosts = async (
 
 export const getEstateBySlug = async (slug: string): Promise<Estate> => {
   try {
-    const response = await axiosClient.get<{ success: boolean; data: Estate; message?: string }>(`/posts/${slug}`);
+    const response = await axiosClient.get<{
+      success: boolean;
+      data: Estate;
+      message?: string;
+    }>(`/posts/${slug}`);
 
     if (!response.data?.success) {
-      throw new Error(response.data?.message || "Failed to fetch estate detail");
+      throw new Error(
+        response.data?.message || "Failed to fetch estate detail",
+      );
     }
 
     return mapPostToEstate(response.data.data);
@@ -176,4 +161,28 @@ export const getEstateBySlug = async (slug: string): Promise<Estate> => {
     const backendMessage = axiosError.response?.data?.message;
     throw new Error(backendMessage || "Failed to fetch estate detail");
   }
+};
+
+export const createPostsApi = (body: CreatePostInput) => {
+  const formData = new FormData();
+
+  const { images, redBookImages, ...textFields } = body;
+
+  Object.entries(textFields).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") {
+      return;
+    }
+    formData.append(key, String(value));
+  });
+
+  images?.forEach((file) => formData.append("images", file));
+  redBookImages?.forEach((file) => formData.append("redBookImages", file));
+
+  for (const [key, value] of formData.entries()) {
+    console.log(key, value);
+  }
+
+  return axiosClient.post("/posts", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 };

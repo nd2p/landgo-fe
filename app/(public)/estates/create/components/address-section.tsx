@@ -1,5 +1,11 @@
 import { Controller, UseFormReturn } from "react-hook-form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { CreatePostInput } from "@/features/estate/estate.validation";
 import { IDistrict, IProvince, IWard } from "@/features/location/location.type";
@@ -21,7 +27,11 @@ export default function AddressSection({
   onProvinceChange,
   onDistrictChange,
 }: Props) {
-  const { control, register, formState: { errors } } = form;
+  const {
+    control,
+    register,
+    formState: { errors },
+  } = form;
 
   return (
     <section className="bg-white p-6 rounded-xl shadow space-y-4">
@@ -38,18 +48,22 @@ export default function AddressSection({
               onProvinceChange(value);
             }}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full" aria-required="true">
               <SelectValue placeholder="Tỉnh / Thành phố" />
             </SelectTrigger>
             <SelectContent>
               {provinces.map((p) => (
-                <SelectItem key={p._id} value={String(p._id)}>{p.name}</SelectItem>
+                <SelectItem key={p._id} value={String(p._id)}>
+                  {p.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         )}
       />
-      {errors.province && <p className="text-red-500 text-sm">{errors.province.message}</p>}
+      {errors.province && (
+        <p className="text-red-500 text-sm">{errors.province.message}</p>
+      )}
 
       <Controller
         name="district"
@@ -62,39 +76,79 @@ export default function AddressSection({
               onDistrictChange(value);
             }}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full" aria-required="true">
               <SelectValue placeholder="Quận / Huyện" />
             </SelectTrigger>
             <SelectContent>
               {districts.map((d) => (
-                <SelectItem key={d._id} value={String(d._id)}>{d.name}</SelectItem>
+                <SelectItem key={d._id} value={String(d._id)}>
+                  {d.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         )}
       />
-      {errors.district && <p className="text-red-500 text-sm">{errors.district.message}</p>}
+      {errors.district && (
+        <p className="text-red-500 text-sm">{errors.district.message}</p>
+      )}
 
       <Controller
         name="ward"
         control={control}
         render={({ field }) => (
           <Select value={field.value} onValueChange={field.onChange}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full" aria-required="true">
               <SelectValue placeholder="Phường / Xã" />
             </SelectTrigger>
             <SelectContent>
               {wards.map((w) => (
-                <SelectItem key={w._id} value={String(w._id)}>{w.name}</SelectItem>
+                <SelectItem key={w._id} value={String(w._id)}>
+                  {w.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         )}
       />
-      {errors.ward && <p className="text-red-500 text-sm">{errors.ward.message}</p>}
+      {errors.ward && (
+        <p className="text-red-500 text-sm">{errors.ward.message}</p>
+      )}
 
-      <Input {...register("addressDetail")} placeholder="Địa chỉ chi tiết (tuỳ chọn)" />
-      {errors.addressDetail && <p className="text-red-500 text-sm">{errors.addressDetail.message}</p>}
+      <Input
+        {...register("addressDetail")}
+        placeholder="Địa chỉ chi tiết (tuỳ chọn)"
+      />
+      {errors.addressDetail && (
+        <p className="text-red-500 text-sm">{errors.addressDetail.message}</p>
+      )}
+
+      {/* <div className="grid gap-3 md:grid-cols-2">
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-slate-700">Vĩ độ</label>
+          <Input
+            type="number"
+            placeholder="Vĩ độ"
+            {...register("lat")}
+            required
+          />
+          {errors.lat && (
+            <p className="text-red-500 text-sm">{errors.lat.message}</p>
+          )}
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-slate-700">Kinh độ</label>
+          <Input
+            type="number"
+            placeholder="Kinh độ"
+            {...register("lng")}
+            required
+          />
+          {errors.lng && (
+            <p className="text-red-500 text-sm">{errors.lng.message}</p>
+          )}
+        </div>
+      </div> */}
     </section>
   );
 }

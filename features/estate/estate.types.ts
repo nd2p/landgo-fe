@@ -58,9 +58,9 @@ export type Estate = {
   score: number;
   commentCount: number;
   viewCount: number;
-  isPinned: boolean;
-  pinLevel: number | null;
-  pinExpiredAt: string | null;
+  isPinned?: boolean;
+  pinLevel?: number | null;
+  pinExpiredAt?: string | null;
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
