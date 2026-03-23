@@ -6,6 +6,9 @@ export enum PropertyType {
   Villa = "villa",
 }
 
+export type PaymentDurationType = "week" | "month" | "year";
+export type PaymentStatus = "pending" | "paid" | "rejected";
+
 export const PropertyTypeLabel: Record<PropertyType, string> = {
   [PropertyType.Apartment]: "Chung cư",
   [PropertyType.House]: "Nhà ở",
@@ -38,9 +41,15 @@ export type CreatePostInput = {
   isPinned: boolean;
   pinLevel: 1 | 2 | null;
   pinExpiredAt: string | null;
+  pinDurationType?: PaymentDurationType | "";
   phone?: string;
   name?: string;
   email?: string;
+};
+
+export type UpdatePostInput = Partial<CreatePostInput> & {
+  existingImages?: string[];
+  existingRedBookImages?: string[];
 };
 
 export type EstateStatus = "Pending" | "Approved" | "Rejected";

@@ -18,23 +18,6 @@ export default function LegalSection({ values, errors, onFieldChange }: Props) {
       <h2 className="text-lg font-semibold">Thông tin pháp lý</h2>
 
       <div className="space-y-1">
-        <label className="text-sm font-medium text-slate-700">
-          Trạng thái pháp lý
-        </label>
-        <Input
-          value={values.legalStatus}
-          onChange={(event) =>
-            onFieldChange("legalStatus", event.target.value)
-          }
-          placeholder="Trạng thái pháp lý"
-          required
-        />
-      </div>
-      {errors.legalStatus && (
-        <p className="text-red-500 text-sm">{errors.legalStatus}</p>
-      )}
-
-      <div className="space-y-1">
         <label className="text-sm font-medium text-slate-700">Giá cả</label>
         <select
           className="border-input w-full rounded-md border px-3 py-2 text-sm"
@@ -50,7 +33,9 @@ export default function LegalSection({ values, errors, onFieldChange }: Props) {
       </div>
 
       <div>
-        <p className="mb-2 text-sm text-muted-foreground">Ảnh sổ đỏ</p>
+        <label className="text-sm font-medium">
+          Ảnh sổ đỏ <span className="text-red-500">*</span>
+        </label>
         <ImageUploader
           images={values.redBookImages}
           setImages={(files) => onFieldChange("redBookImages", files)}

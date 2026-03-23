@@ -12,10 +12,16 @@ type Props = {
   onFieldChange: FieldChangeHandler;
 };
 
-export default function ContentSection({ values, errors, onFieldChange }: Props) {
+export default function ContentSection({
+  values,
+  errors,
+  onFieldChange,
+}: Props) {
   return (
     <section className="bg-white p-6 rounded-xl shadow space-y-4">
-      <h2 className="text-lg font-semibold">Nội dung</h2>
+      <h2 className="text-lg font-semibold">
+        Nội dung<span className="text-red-500">*</span>
+      </h2>
 
       <div>
         <p className="mb-3 text-sm text-muted-foreground">Hình ảnh</p>

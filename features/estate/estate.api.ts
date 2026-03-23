@@ -1,4 +1,5 @@
 import axiosClient from "@/lib/axios";
+import { createRequestCache } from "@/lib/utils";
 import { AxiosError } from "axios";
 import type {
   AuthorObject,
@@ -9,6 +10,16 @@ import type {
   GetPostsResponse,
   GetMyPostsParams,
 } from "./estate.types";
+
+const ESTATE_REQUEST_CACHE_TTL_MS = 1500;
+
+const estateRequestCache = createRequestCache({
+  successTtlMs: ESTATE_REQUEST_CACHE_TTL_MS,
+});
+
+const invalidateEstateListCache = () => {
+  estateRequestCache.invalidateByPrefix(["getPosts:", "getMyPosts:"]);
+};
 
 function mapAuthor(author?: AuthorObject): AuthorObject | undefined {
   if (!author?._id) {
@@ -85,61 +96,90 @@ function mapPostToEstate(post: Estate): Estate {
 export const getPosts = async (
   filters: GetPostsParams = {},
 ): Promise<Estate[]> => {
-  try {
-    const searchParams = new URLSearchParams();
+  const searchParams = new URLSearchParams();
 
-    if (typeof filters.minPrice === "number") {
-      searchParams.set("minPrice", filters.minPrice.toString());
-    }
+  if (typeof filters.minPrice === "number") {
+    searchParams.set("minPrice", filters.minPrice.toString());
+  }
 
-    if (typeof filters.maxPrice === "number") {
-      searchParams.set("maxPrice", filters.maxPrice.toString());
-    }
+  if (typeof filters.maxPrice === "number") {
+    searchParams.set("maxPrice", filters.maxPrice.toString());
+  }
 
-    if (filters.propertyType) {
-      searchParams.set("propertyType", filters.propertyType);
-    }
+  if (filters.propertyType) {
+    searchParams.set("propertyType", filters.propertyType);
+  }
 
-    if (typeof filters.minArea === "number") {
-      searchParams.set("minArea", filters.minArea.toString());
-    }
+  if (typeof filters.minArea === "number") {
+    searchParams.set("minArea", filters.minArea.toString());
+  }
 
-    if (typeof filters.maxArea === "number") {
-      searchParams.set("maxArea", filters.maxArea.toString());
-    }
+  if (typeof filters.maxArea === "number") {
+    searchParams.set("maxArea", filters.maxArea.toString());
+  }
 
-    if (filters.province) {
-      searchParams.set("province", filters.province);
-    }
+  if (filters.province) {
+    searchParams.set("province", filters.province);
+  }
 
-    if (filters.district) {
-      searchParams.set("district", filters.district);
-    }
+  if (filters.district) {
+    searchParams.set("district", filters.district);
+  }
 
-    if (filters.ward) {
-      searchParams.set("ward", filters.ward);
-    }
+  if (filters.ward) {
+    searchParams.set("ward", filters.ward);
+  }
 
-    if (filters.addressDetail) {
-      searchParams.set("addressDetail", filters.addressDetail);
-    }
+  if (filters.addressDetail) {
+    searchParams.set("addressDetail", filters.addressDetail);
+  }
 
-    const response = await axiosClient.get<GetPostsResponse>(
-      searchParams.toString() ? `/posts?${searchParams.toString()}` : "/posts",
-    );
+  const requestPath = searchParams.toString()
+    ? `/posts?${searchParams.toString()}`
+    : "/posts";
 
-    if (!response.data?.success) {
+  return estateRequestCache.run(`getPosts:${requestPath}`, async () => {
+    try {
+      const response = await axiosClient.get<GetPostsResponse>(requestPath);
+
+      if (!response.data?.success) {
+        throw new Error(
+          response.data?.message || "Failed to fetch posts from the server",
+        );
+      }
+
+      return (response.data.data ?? []).map(mapPostToEstate);
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const backendMessage = axiosError.response?.data?.message;
       throw new Error(
-        response.data?.message || "Failed to fetch posts from the server",
+        backendMessage || "Failed to fetch posts from the server",
       );
     }
+  });
+};
 
-    return (response.data.data ?? []).map(mapPostToEstate);
-  } catch (error) {
-    const axiosError = error as AxiosError<{ message?: string }>;
-    const backendMessage = axiosError.response?.data?.message;
-    throw new Error(backendMessage || "Failed to fetch posts from the server");
-  }
+export const getPinnedPosts = async (): Promise<Estate[]> => {
+  return estateRequestCache.run("getPinnedPosts", async () => {
+    try {
+      const response = await axiosClient.get<{
+        success: boolean;
+        data: Estate[];
+      }>("/posts/pinned");
+
+      if (!response.data?.success) {
+        throw new Error("Failed to fetch pinned posts from the server");
+      }
+
+      return (response.data.data ?? []).map(mapPostToEstate);
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const backendMessage = axiosError.response?.data?.message;
+      throw new Error(
+        backendMessage || "Failed to fetch pinned posts from the server",
+      );
+    }
+  });
 };
 
 export const getEstateBySlug = async (slug: string): Promise<Estate> => {
@@ -170,7 +210,12 @@ export const createPostsApi = (body: CreatePostInput) => {
   const { images, redBookImages, ...textFields } = body;
 
   Object.entries(textFields).forEach(([key, value]) => {
-    if ( value === undefined ||value === null || value === "" || value === "null" ) {
+    if (
+      value === undefined ||
+      value === null ||
+      value === "" ||
+      value === "null"
+    ) {
       return;
     }
 
@@ -183,69 +228,121 @@ export const createPostsApi = (body: CreatePostInput) => {
   images?.forEach((file) => formData.append("images", file));
   redBookImages?.forEach((file) => formData.append("redBookImages", file));
 
-  return axiosClient.post("/posts", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  return axiosClient
+    .post("/posts", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+    .then((response) => {
+      invalidateEstateListCache();
+      return response;
+    });
 };
 
 export const getMyPosts = async (
   filters: GetMyPostsParams = {},
 ): Promise<{ data: Estate[]; pagination: GetPostsResponse["pagination"] }> => {
-  try {
-    const searchParams = new URLSearchParams();
+  const searchParams = new URLSearchParams();
 
-    if (filters.status) {
-      searchParams.set("status", filters.status);
-    }
+  if (filters.status) {
+    searchParams.set("status", filters.status);
+  }
 
-    if (typeof filters.page === "number") {
-      searchParams.set("page", filters.page.toString());
-    }
+  if (typeof filters.page === "number") {
+    searchParams.set("page", filters.page.toString());
+  }
 
-    if (typeof filters.limit === "number") {
-      searchParams.set("limit", filters.limit.toString());
-    }
+  if (typeof filters.limit === "number") {
+    searchParams.set("limit", filters.limit.toString());
+  }
 
-    const response = await axiosClient.get<GetPostsResponse>(
-      searchParams.toString() ? `/posts/my?${searchParams.toString()}` : "/posts/my",
-    );
+  const requestPath = searchParams.toString()
+    ? `/posts/my?${searchParams.toString()}`
+    : "/posts/my";
 
-    if (!response.data?.success) {
+  return estateRequestCache.run(`getMyPosts:${requestPath}`, async () => {
+    try {
+      const response = await axiosClient.get<GetPostsResponse>(requestPath);
+      console.log(
+        "getMyPosts response:",
+        response.data.data.map(mapPostToEstate),
+      );
+      if (!response.data?.success) {
+        throw new Error(
+          response.data?.message ||
+            "Failed to fetch user posts from the server",
+        );
+      }
+
+      return {
+        data: (response.data.data ?? []).map(mapPostToEstate),
+        pagination: response.data.pagination,
+      };
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const backendMessage = axiosError.response?.data?.message;
+      console.error("getMyPosts error:", error);
       throw new Error(
-        response.data?.message || "Failed to fetch user posts from the server",
+        backendMessage || "Failed to fetch user posts from the server",
       );
     }
-
-    return {
-      data: (response.data.data ?? []).map(mapPostToEstate),
-      pagination: response.data.pagination,
-    };
-  } catch (error) {
-    const axiosError = error as AxiosError<{ message?: string }>;
-    const backendMessage = axiosError.response?.data?.message;
-    throw new Error(
-      backendMessage || "Failed to fetch user posts from the server",
-    );
-  }
+  });
 };
 
 export const updatePost = async (
   postId: string,
-  body: Partial<CreatePostInput>,
+  body: import("./estate.types").UpdatePostInput,
 ): Promise<Estate> => {
-  const { images, redBookImages, pinExpiredAt, pinLevel, isPinned, ...rest } =
-    body;
+  const {
+    images,
+    redBookImages,
+    existingImages,
+    existingRedBookImages,
+    ...textFields
+  } = body;
+
+  const formData = new FormData();
+
+  Object.entries(textFields).forEach(([key, value]) => {
+    if (
+      value === undefined ||
+      value === null ||
+      value === "" ||
+      value === "null"
+    ) {
+      return;
+    }
+
+    formData.append(key, String(value));
+  });
+
+  if (existingImages) {
+    formData.append("existingImages", JSON.stringify(existingImages));
+  }
+
+  if (existingRedBookImages) {
+    formData.append(
+      "existingRedBookImages",
+      JSON.stringify(existingRedBookImages),
+    );
+  }
+
+  images?.forEach((file) => formData.append("images", file));
+  redBookImages?.forEach((file) => formData.append("redBookImages", file));
 
   try {
     const response = await axiosClient.patch<{
       success: boolean;
       data: Estate;
       message?: string;
-    }>(`/posts/${postId}`, rest);
+    }>(`/posts/${postId}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
 
     if (!response.data?.success) {
       throw new Error(response.data?.message || "Failed to update post");
     }
+
+    invalidateEstateListCache();
 
     return mapPostToEstate(response.data.data);
   } catch (error) {
@@ -265,6 +362,8 @@ export const deletePost = async (postId: string): Promise<void> => {
     if (!response.data?.success) {
       throw new Error(response.data?.message || "Failed to delete post");
     }
+
+    invalidateEstateListCache();
   } catch (error) {
     const axiosError = error as AxiosError<{ message?: string }>;
     const backendMessage = axiosError.response?.data?.message;

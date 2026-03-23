@@ -1,9 +1,16 @@
 import axiosClient from "@/lib/axios";
 import { removeAccessToken, setAccessToken } from "@/lib/auth-token";
+import { createRequestCache } from "@/lib/utils";
 import { AxiosError } from "axios";
 import type { AuthRole } from "@/lib/auth-role";
 import { getMeApi } from "./auth.api";
 import { getAuthErrorMessage, getAuthSuccessMessage } from "./auth-errors";
+
+const AUTH_REQUEST_CACHE_TTL_MS = 1500;
+
+const authRequestCache = createRequestCache({
+  successTtlMs: AUTH_REQUEST_CACHE_TTL_MS,
+});
 
 export type RegisterPayload = {
   phone: string;
@@ -206,11 +213,13 @@ export const verifyEmailOtp = async (
 };
 
 export const getMeService = async () => {
-  try {
-    const response = await getMeApi();
-    return response.data.data;
-  } catch (error) {
-    console.error("Can't find this auth: ", error);
-    throw error;
-  }
+  return authRequestCache.run("auth:getMe", async () => {
+    try {
+      const response = await getMeApi();
+      return response.data.data;
+    } catch (error) {
+      console.error("Can't find this auth: ", error);
+      throw error;
+    }
+  });
 };

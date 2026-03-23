@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ElementType } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ElementType,
+} from "react";
 import {
   BarChart3,
   ChevronLeft,
@@ -37,16 +43,16 @@ const numberFormatter = new Intl.NumberFormat("vi-VN");
 const POST_PAGE_SIZE = 12;
 
 const statusLabelMap: Record<keyof AdminPostStatusMap, string> = {
-  active: "Active",
-  inactive: "Inactive",
+  active: "Đang hoạt động",
+  inactive: "Ngưng hoạt động",
 };
 
 const propertyTypeLabelMap: Record<string, string> = {
-  house: "House",
-  apartment: "Apartment",
-  land: "Land",
-  villa: "Villa",
-  commercial: "Commercial",
+  house: "Nhà",
+  apartment: "Căn hộ",
+  land: "Đất",
+  villa: "Biệt thự",
+  commercial: "Thương mại",
 };
 
 const statusToneMap: Record<
@@ -62,7 +68,7 @@ const statusColorMap: Record<keyof AdminPostStatusMap, string> = {
   inactive: "#6b7280",
 };
 
-const loadErrorMessage = "Unable to load post statistics. Please try again.";
+const loadErrorMessage = "Không thể tải thống kê bài đăng. Vui lòng thử lại.";
 const propertyPieColors = [
   "#f59e0b",
   "#3b82f6",
@@ -90,7 +96,9 @@ function StatCard({
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">{title}</p>
             <p className="text-3xl font-bold tracking-tight">{value}</p>
-            {sub ? <p className="text-xs text-muted-foreground">{sub}</p> : null}
+            {sub ? (
+              <p className="text-xs text-muted-foreground">{sub}</p>
+            ) : null}
           </div>
           <div className="rounded-lg border bg-muted p-2 text-muted-foreground">
             <Icon className="h-5 w-5" />
@@ -160,7 +168,10 @@ function PieChart({
         {items.map((item) => {
           const percent = Math.round((item.value / total) * 100);
           return (
-            <div key={item.key} className="flex items-center justify-between gap-3 text-sm">
+            <div
+              key={item.key}
+              className="flex items-center justify-between gap-3 text-sm"
+            >
               <div className="flex items-center gap-2">
                 <span
                   className="h-2.5 w-2.5 rounded-full"
@@ -191,14 +202,19 @@ function Last7DaysChart({ data }: { data: AdminPostDailyStat[] }) {
       {data.map((item) => {
         const height = Math.max(10, Math.round((item.count / max) * 120));
         return (
-          <div key={item.date} className="flex flex-1 flex-col items-center gap-2">
+          <div
+            key={item.date}
+            className="flex flex-1 flex-col items-center gap-2"
+          >
             <span className="text-xs font-medium">{item.count}</span>
             <div
               className="w-full rounded-md bg-primary/85 transition-all hover:bg-primary"
               style={{ height: `${height}px` }}
               title={`${item.label}: ${item.count}`}
             />
-            <span className="text-[11px] text-muted-foreground">{item.label}</span>
+            <span className="text-[11px] text-muted-foreground">
+              {item.label}
+            </span>
           </div>
         );
       })}
@@ -208,7 +224,11 @@ function Last7DaysChart({ data }: { data: AdminPostDailyStat[] }) {
 
 function StatusBadge({ status }: { status: string }) {
   const normalized = status === "active" ? "active" : "inactive";
-  return <Badge variant={statusToneMap[normalized]}>{statusLabelMap[normalized]}</Badge>;
+  return (
+    <Badge variant={statusToneMap[normalized]}>
+      {statusLabelMap[normalized]}
+    </Badge>
+  );
 }
 
 export default function ManagePostsPage() {
@@ -220,7 +240,9 @@ export default function ManagePostsPage() {
   const [postsTotal, setPostsTotal] = useState(0);
   const [postPage, setPostPage] = useState(1);
   const [postPages, setPostPages] = useState(1);
-  const [statusFilter, setStatusFilter] = useState<"active" | "inactive">("active");
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive">(
+    "active",
+  );
 
   const loadStats = useCallback(async () => {
     try {
@@ -279,30 +301,30 @@ export default function ManagePostsPage() {
     return [
       {
         key: "active",
-        title: "Total active posts",
+        title: "Bài đăng đang hoạt động",
         value: numberFormatter.format(stats.overview.totalPosts),
-        sub: `Total all posts: ${numberFormatter.format(stats.overview.totalAllPosts)}`,
+        sub: `Tổng tất cả bài đăng: ${numberFormatter.format(stats.overview.totalAllPosts)}`,
         icon: FileText,
       },
       {
         key: "views",
-        title: "Total views",
+        title: "Lượt xem",
         value: numberFormatter.format(stats.overview.totalViews),
-        sub: `${numberFormatter.format(stats.overview.totalScore)} total score`,
+        sub: `${numberFormatter.format(stats.overview.totalScore)} tổng điểm`,
         icon: Eye,
       },
       {
         key: "comments",
-        title: "Comments",
+        title: "Bình luận",
         value: numberFormatter.format(stats.overview.totalComments),
-        sub: `${numberFormatter.format(stats.byStatus.inactive)} inactive posts`,
+        sub: `${numberFormatter.format(stats.byStatus.inactive)} bài đăng ngưng hoạt động`,
         icon: MessageSquare,
       },
       {
         key: "pinned",
-        title: "Pinned posts",
+        title: "Bài đăng được ghim",
         value: numberFormatter.format(stats.overview.pinnedPosts),
-        sub: `${stats.overview.activeRate}% currently active`,
+        sub: `Chiếm ${stats.overview.activeRate}% bài đăng đang hoạt động`,
         icon: Pin,
       },
     ];
@@ -332,14 +354,20 @@ export default function ManagePostsPage() {
     <div className="space-y-6 p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight">Post Statistics</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Thống kê bài đăng
+          </h1>
           <p className="text-sm text-muted-foreground">
-            Thống kê active/inactive và quản lý toàn bộ bài đăng.
+            Thống kê trạng thái và quản lý toàn bộ bài đăng.
           </p>
         </div>
-        <Button variant="outline" onClick={() => void refreshAll()} disabled={statsLoading}>
+        <Button
+          variant="outline"
+          onClick={() => void refreshAll()}
+          disabled={statsLoading}
+        >
           <RefreshCcw className="mr-2 h-4 w-4" />
-          Refresh
+          Làm mới
         </Button>
       </div>
 
@@ -381,9 +409,11 @@ export default function ManagePostsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
-              Active vs Inactive
+              Trạng thái hoạt động
             </CardTitle>
-            <CardDescription>Distribution by post status</CardDescription>
+            <CardDescription>
+              Phân phối theo trạng thái bài viết
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {statsLoading || !stats ? (
@@ -394,19 +424,19 @@ export default function ManagePostsPage() {
               </div>
             ) : (
               <PieChart
-                centerLabel="Total"
+                centerLabel="Tổng"
                 centerValue={stats.byStatus.active + stats.byStatus.inactive}
                 items={[
                   {
                     key: "active",
-                    label: "Active",
+                    label: "Đang hoạt động",
                     value: stats.byStatus.active,
                     color: statusColorMap.active,
                     badge: "default",
                   },
                   {
                     key: "inactive",
-                    label: "Inactive",
+                    label: "Ngưng hoạt động",
                     value: stats.byStatus.inactive,
                     color: statusColorMap.inactive,
                     badge: "secondary",
@@ -421,9 +451,9 @@ export default function ManagePostsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
-              New posts in 7 days
+              Bài đăng mới trong 7 ngày gần đây
             </CardTitle>
-            <CardDescription>Daily volume</CardDescription>
+            <CardDescription>Khối lượng hàng ngày</CardDescription>
           </CardHeader>
           <CardContent>
             {statsLoading || !stats ? (
@@ -438,9 +468,11 @@ export default function ManagePostsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
-              Property type mix
-            </CardTitle>
-            <CardDescription>Percent is based on total post count by type</CardDescription>
+              Các loại hình bất động sản
+         </CardTitle>
+            <CardDescription>
+              Tỷ lệ phần trăm được tính dựa trên tổng số bài đăng theo loại hình.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {statsLoading || !stats ? (
@@ -451,10 +483,12 @@ export default function ManagePostsPage() {
               </div>
             ) : (
               <PieChart
-                centerLabel="Posts"
+                centerLabel="Bài đăng"
                 items={stats.propertyTypeDistribution.map((item, index) => ({
                   key: item.propertyType,
-                  label: propertyTypeLabelMap[item.propertyType] ?? item.propertyType,
+                  label:
+                    propertyTypeLabelMap[item.propertyType] ??
+                    item.propertyType,
                   value: item.count,
                   color: propertyPieColors[index % propertyPieColors.length],
                 }))}
@@ -466,8 +500,8 @@ export default function ManagePostsPage() {
 
       <Card className="border-primary/20 shadow-sm">
         <CardHeader>
-          <CardTitle>Top viewed posts</CardTitle>
-          <CardDescription>Highest view counts</CardDescription>
+          <CardTitle>Bài đăng được xem nhiều nhất</CardTitle>
+          <CardDescription>Số luọt xem cao nhất</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {statsLoading || !stats ? (
@@ -485,12 +519,14 @@ export default function ManagePostsPage() {
               <table className="w-full min-w-[720px] text-sm">
                 <thead>
                   <tr className="border-y bg-muted/40 text-left text-muted-foreground">
-                    <th className="px-6 py-3 font-medium">Title</th>
-                    <th className="px-4 py-3 font-medium">Type</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 font-medium text-right">Views</th>
-                    <th className="px-4 py-3 font-medium text-right">Score</th>
-                    <th className="px-6 py-3 font-medium text-right">Created</th>
+                    <th className="px-6 py-3 font-medium">Tiêu đề</th>
+                    <th className="px-4 py-3 font-medium">Loại hình</th>
+                    <th className="px-4 py-3 font-medium">Trạng thái</th>
+                    <th className="px-4 py-3 font-medium text-right">Lượt xem</th>
+                    <th className="px-4 py-3 font-medium text-right">Điểm số</th>
+                    <th className="px-6 py-3 font-medium text-right">
+                      Ngày tạo
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -498,7 +534,8 @@ export default function ManagePostsPage() {
                     <tr key={post._id} className="border-b">
                       <td className="px-6 py-3 font-medium">{post.title}</td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {propertyTypeLabelMap[post.propertyType] ?? post.propertyType}
+                        {propertyTypeLabelMap[post.propertyType] ??
+                          post.propertyType}
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={post.status} />
@@ -525,9 +562,9 @@ export default function ManagePostsPage() {
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <CardTitle>All posted listings</CardTitle>
+              <CardTitle>Tất cả bài đăng đã đăng</CardTitle>
               <CardDescription>
-                Danh sách hiển thị theo trạng thái để admin bật/tắt active.
+                Danh sách hiển thị theo trạng thái để quản trị viên bật/tắt trạng.
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -539,7 +576,7 @@ export default function ManagePostsPage() {
                   setPostPage(1);
                 }}
               >
-                Active
+                Hoạt động
               </Button>
               <Button
                 size="sm"
@@ -549,7 +586,7 @@ export default function ManagePostsPage() {
                   setPostPage(1);
                 }}
               >
-                Inactive
+                Ngưng hoạt động
               </Button>
             </div>
           </div>
@@ -570,13 +607,13 @@ export default function ManagePostsPage() {
               <table className="w-full min-w-[980px] text-sm">
                 <thead>
                   <tr className="border-y bg-muted/40 text-left text-muted-foreground">
-                    <th className="px-6 py-3 font-medium">Title</th>
-                    <th className="px-4 py-3 font-medium">Author</th>
-                    <th className="px-4 py-3 font-medium">Type</th>
-                    <th className="px-4 py-3 font-medium text-right">Price</th>
-                    <th className="px-4 py-3 font-medium text-right">Views</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-6 py-3 font-medium text-right">Action</th>
+                    <th className="px-6 py-3 font-medium">Tiêu đề</th>
+                    <th className="px-4 py-3 font-medium">Tác giả</th>
+                    <th className="px-4 py-3 font-medium">Loại hình</th>
+                    <th className="px-4 py-3 font-medium text-right">Giá</th>
+                    <th className="px-4 py-3 font-medium text-right">Lượt xem</th>
+                    <th className="px-4 py-3 font-medium">Trạng thái</th>
+                    <th className="px-6 py-3 font-medium text-right">Tùy chọn</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -587,7 +624,8 @@ export default function ManagePostsPage() {
                         {post.author?.name ?? "-"}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {propertyTypeLabelMap[post.propertyType] ?? post.propertyType}
+                        {propertyTypeLabelMap[post.propertyType] ??
+                          post.propertyType}
                       </td>
                       <td className="px-4 py-3 text-right">
                         {numberFormatter.format(post.price)}
@@ -605,7 +643,9 @@ export default function ManagePostsPage() {
                               size="sm"
                               variant="destructive"
                               className="h-8 px-3"
-                              onClick={() => void handleDeactivatePost(post._id)}
+                              onClick={() =>
+                                void handleDeactivatePost(post._id)
+                              }
                             >
                               <Trash2 className="mr-1.5 h-3.5 w-3.5" />
                               Inactive
@@ -633,7 +673,8 @@ export default function ManagePostsPage() {
           {!postsLoading ? (
             <div className="flex items-center justify-between border-t px-6 py-3">
               <p className="text-sm text-muted-foreground">
-                Page {postPage}/{postPages} - {numberFormatter.format(postsTotal)} posts
+              Trang {postPage}/{postPages} -{" "}
+                {numberFormatter.format(postsTotal)} bài đăng
               </p>
               <div className="flex items-center gap-3">
                 <Button
@@ -650,7 +691,9 @@ export default function ManagePostsPage() {
                   type="button"
                   size="sm"
                   variant="outline"
-                  onClick={() => setPostPage((prev) => Math.min(postPages, prev + 1))}
+                  onClick={() =>
+                    setPostPage((prev) => Math.min(postPages, prev + 1))
+                  }
                   disabled={postPage >= postPages}
                   aria-label="Next page"
                 >

@@ -15,7 +15,7 @@ export const loginSchema = yup.object({
     .string()
     .required("Vui lòng nhập số điện thoại")
     .test("vn-phone", "Số điện thoại không đúng định dạng Việt Nam", (value) =>
-			isStrictValidVietnamPhone(value)
+      isStrictValidVietnamPhone(value),
     ),
   password: yup.string().required("Vui lòng nhập mật khẩu"),
 });
@@ -25,7 +25,7 @@ export const registerSchema = yup.object({
     .string()
     .required("Vui lòng nhập số điện thoại")
     .test("vn-phone", "Số điện thoại không đúng định dạng VN", (value) =>
-			isStrictValidVietnamPhone(value)
+      isStrictValidVietnamPhone(value),
     ),
   fullName: yup
     .string()
@@ -106,11 +106,14 @@ export const meSchema = yup.object({
     .string()
     .required("Vui lòng nhập email")
     .email("Email không đúng định dạng"),
+  role: yup.string().optional(),
 });
 
 export type LoginFormValues = yup.InferType<typeof loginSchema>;
 export type RegisterFormValues = yup.InferType<typeof registerSchema>;
-export type ForgotPasswordFormValues = yup.InferType<typeof forgotPasswordSchema>;
+export type ForgotPasswordFormValues = yup.InferType<
+  typeof forgotPasswordSchema
+>;
 export type ResetPasswordFormValues = yup.InferType<typeof resetPasswordSchema>;
 export type VerifyEmailFormValues = yup.InferType<typeof verifyEmailSchema>;
 export type MeSchemaFormValues = yup.InferType<typeof meSchema>;
