@@ -152,7 +152,9 @@ export const getPosts = async (
     } catch (error) {
       const axiosError = error as AxiosError<{ message?: string }>;
       const backendMessage = axiosError.response?.data?.message;
-      throw new Error(backendMessage || "Failed to fetch posts from the server");
+      throw new Error(
+        backendMessage || "Failed to fetch posts from the server",
+      );
     }
   });
 };
@@ -185,7 +187,12 @@ export const createPostsApi = (body: CreatePostInput) => {
   const { images, redBookImages, ...textFields } = body;
 
   Object.entries(textFields).forEach(([key, value]) => {
-    if ( value === undefined ||value === null || value === "" || value === "null" ) {
+    if (
+      value === undefined ||
+      value === null ||
+      value === "" ||
+      value === "null"
+    ) {
       return;
     }
 
@@ -198,12 +205,14 @@ export const createPostsApi = (body: CreatePostInput) => {
   images?.forEach((file) => formData.append("images", file));
   redBookImages?.forEach((file) => formData.append("redBookImages", file));
 
-  return axiosClient.post("/posts", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  }).then((response) => {
-    invalidateEstateListCache();
-    return response;
-  });
+  return axiosClient
+    .post("/posts", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+    .then((response) => {
+      invalidateEstateListCache();
+      return response;
+    });
 };
 
 export const getMyPosts = async (
@@ -230,10 +239,14 @@ export const getMyPosts = async (
   return estateRequestCache.run(`getMyPosts:${requestPath}`, async () => {
     try {
       const response = await axiosClient.get<GetPostsResponse>(requestPath);
-
+      console.log(
+        "getMyPosts response:",
+        response.data.data.map(mapPostToEstate),
+      );
       if (!response.data?.success) {
         throw new Error(
-          response.data?.message || "Failed to fetch user posts from the server",
+          response.data?.message ||
+            "Failed to fetch user posts from the server",
         );
       }
 
@@ -244,6 +257,7 @@ export const getMyPosts = async (
     } catch (error) {
       const axiosError = error as AxiosError<{ message?: string }>;
       const backendMessage = axiosError.response?.data?.message;
+      console.error("getMyPosts error:", error);
       throw new Error(
         backendMessage || "Failed to fetch user posts from the server",
       );
