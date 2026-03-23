@@ -14,12 +14,15 @@ import {
 } from "@/lib/auth-token";
 import { MenubarToggle } from "@/components/common/layout/menubar";
 import FilterDropdown from "@/components/common/layout/filter-dropdown";
+import { MeSchemaFormValues } from "@/features/auth/auth.validation";
+import { getMeApi } from "@/features/auth/auth.api";
 
 export default function Navbar() {
   const pathname = usePathname();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [user, setUser] = useState<MeSchemaFormValues | null>(null);
   const isAuthPage =
     pathname === "/login" ||
     pathname === "/register" ||
@@ -56,6 +59,34 @@ export default function Navbar() {
     };
 
     syncAuthState();
+    window.addEventListener("storage", syncAuthState);
+    window.addEventListener(authTokenChangedEventName, syncAuthState);
+
+    return () => {
+      window.removeEventListener("storage", syncAuthState);
+      window.removeEventListener(authTokenChangedEventName, syncAuthState);
+    };
+  }, []);
+
+  useEffect(() => {
+    const syncAuthState = async () => {
+      const loggedIn = hasAccessToken();
+      setIsLoggedIn(loggedIn);
+
+      if (loggedIn) {
+        try {
+          const res = await getMeApi();
+          setUser(res.data.data);
+        } catch {
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+    };
+
+    syncAuthState();
+
     window.addEventListener("storage", syncAuthState);
     window.addEventListener(authTokenChangedEventName, syncAuthState);
 
@@ -122,6 +153,15 @@ export default function Navbar() {
           </div>
           {isLoggedIn && (
             <>
+              {user?.role === "moderator" && (
+                <Button
+                  asChild
+                  variant="secondary"
+                  className="inline-flex shadow-sm text-xs sm:text-sm px-4 h-9"
+                >
+                  <Link href="/admin/dashboard">Dashboard</Link>
+                </Button>
+              )}
               <Button
                 asChild
                 className="inline-flex shadow-sm text-xs sm:text-sm px-4 h-9"

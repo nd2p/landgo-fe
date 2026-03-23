@@ -11,15 +11,15 @@ export default function UsersPage() {
         <CardContent className="flex flex-wrap items-center justify-between gap-4 py-6">
           <div className="space-y-1">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Admin / Users
+              Quản trị viên / Người dùng
             </p>
-            <h1 className="text-3xl font-bold tracking-tight">Users Management</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Quản lý người dùng</h1>
             <p className="text-sm text-muted-foreground">
               Quản lý tài khoản, phân quyền và cập nhật thông tin người dùng.
             </p>
           </div>
           <Button asChild variant="outline">
-            <Link href="/admin/dashboard">Back To Dashboard</Link>
+            <Link href="/admin/dashboard">Trở về Dashbroad</Link>
           </Button>
         </CardContent>
       </Card>

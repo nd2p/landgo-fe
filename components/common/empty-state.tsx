@@ -1,3 +1,3 @@
 export default function EmptyState() {
-    return <div>No data</div>;
+    return <div>Hiện không có dữ liệu nào tồn tại</div>;
 }

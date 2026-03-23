@@ -138,30 +138,30 @@ export function UsersTable() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Total users</p>
+            <p className="text-sm text-muted-foreground">Tổng người dùng</p>
             <p className="mt-1 text-2xl font-bold">{numberFormatter.format(totalUsers)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Page</p>
+            <p className="text-sm text-muted-foreground">Trang</p>
             <p className="mt-1 text-2xl font-bold">
               {numberFormatter.format(page)}/{numberFormatter.format(totalPages)}
             </p>
             <p className="text-xs text-muted-foreground">
-              {numberFormatter.format(users.length)} rows loaded
+              {numberFormatter.format(users.length)} đã tải 5 hàng
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Moderators</p>
+            <p className="text-sm text-muted-foreground">Quản trị viên</p>
             <p className="mt-1 text-2xl font-bold">{numberFormatter.format(currentPageModerators)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Users</p>
+            <p className="text-sm text-muted-foreground">Người dùng</p>
             <p className="mt-1 text-2xl font-bold">{numberFormatter.format(currentPageUsers)}</p>
           </CardContent>
         </Card>
@@ -171,19 +171,19 @@ export function UsersTable() {
         <CardHeader className="pb-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <CardTitle>User Directory</CardTitle>
+              <CardTitle>Danh sách người dùng</CardTitle>
               <CardDescription>
-                Manage account information and role assignments.
+                Quản lý thông tin tài khoản và phân công vai trò.
               </CardDescription>
             </div>
             <Badge variant="secondary" className="h-8 rounded-md px-3 text-xs">
-              {PAGE_SIZE} per page
+              {PAGE_SIZE} / trang
             </Badge>
             <div className="flex flex-wrap items-center gap-2">
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search name, email, phone..."
+                placeholder="Tìm kiếm tên, email, SĐT..."
                 className="w-56"
               />
               <Select
@@ -194,9 +194,9 @@ export function UsersTable() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All roles</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="moderator">Moderator</SelectItem>
+                  <SelectItem value="all">Tất cả</SelectItem>
+                  <SelectItem value="user">Người dùng</SelectItem>
+                  <SelectItem value="moderator">Quản trị viên</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -212,18 +212,18 @@ export function UsersTable() {
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="px-6 pb-6 pt-2 text-sm text-muted-foreground">
-              No users match current filters on this page.
+             Hiện không có người dùng nào phù hợp với bộ lọc hiện tại trên trang này.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[980px] text-sm">
                 <thead>
                   <tr className="border-y bg-muted/40 text-left text-muted-foreground">
-                    <th className="px-6 py-3 font-medium">User</th>
-                    <th className="px-4 py-3 font-medium">Contact</th>
-                    <th className="px-4 py-3 font-medium">Role</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-6 py-3 text-right font-medium">Actions</th>
+                    <th className="px-6 py-3 font-medium">Người dùng</th>
+                    <th className="px-4 py-3 font-medium">Liên hệ</th>
+                    <th className="px-4 py-3 font-medium">Vai trò</th>
+                    <th className="px-4 py-3 font-medium">Trạng thái</th>
+                    <th className="px-6 py-3 text-right font-medium">Tùy chọn</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -265,7 +265,7 @@ export function UsersTable() {
                       <td className="px-6 py-3">
                         <div className="flex justify-end gap-2">
                           <Button size="sm" variant="outline" onClick={() => setEditingUser(user)}>
-                            Edit
+                            Sửa
                           </Button>
                           <Button
                             size="sm"
@@ -273,7 +273,7 @@ export function UsersTable() {
                             onClick={() => void handleDelete(user._id)}
                             disabled={deletingUserId === user._id}
                           >
-                            Delete
+                            Xóa
                           </Button>
                         </div>
                       </td>
@@ -381,13 +381,13 @@ function EditUserDialog({
     <Dialog open={!!user} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit User</DialogTitle>
+          <DialogTitle>Chỉnh sửa</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">Full name</p>
-            <Input placeholder="Name" {...register("name")} />
+            <p className="text-xs font-medium text-muted-foreground">Họ & tên</p>
+            <Input placeholder="Tên" {...register("name")} />
             <p className="text-sm text-destructive">{errors.name?.message}</p>
           </div>
 
@@ -398,9 +398,9 @@ function EditUserDialog({
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">Phone</p>
+            <p className="text-xs font-medium text-muted-foreground">SĐT</p>
             <Input
-              placeholder="Phone"
+              placeholder="SĐT"
               {...register("phone")}
               onInput={(event: FormEvent<HTMLInputElement>) => {
                 event.currentTarget.value = event.currentTarget.value.replace(/\D/g, "");
@@ -410,7 +410,7 @@ function EditUserDialog({
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs font-medium text-muted-foreground">Role</p>
+            <p className="text-xs font-medium text-muted-foreground">Vai trò</p>
             <Select value={roleValue} onValueChange={(value: Role) => setValue("role", value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select role" />
@@ -435,10 +435,10 @@ function EditUserDialog({
 
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
+              Hủy
             </Button>
             <Button type="submit" disabled={saving}>
-              {saving ? "Saving..." : "Save changes"}
+              {saving ? "Đang lưu..." : "Lưu thay đổi"}
             </Button>
           </div>
         </form>
