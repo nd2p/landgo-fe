@@ -9,7 +9,7 @@ import {
   type EstateFormErrors,
   type EstateFormState,
   type FieldChangeHandler,
-  toCreatePostInput,
+  toUpdatePostInput,
   validateEstateForm,
 } from "@/features/estate/estate.form";
 import { PropertyType } from "@/features/estate/estate.types";
@@ -90,7 +90,9 @@ export default function EditEstatePage() {
 
   useEffect(() => {
     if (!values.province) return;
-    getDistrictsService(values.province).then(setDistricts).catch(console.error);
+    getDistrictsService(values.province)
+      .then(setDistricts)
+      .catch(console.error);
   }, [values.province]);
 
   useEffect(() => {
@@ -152,6 +154,8 @@ export default function EditEstatePage() {
             pinExpiredAt: estate.pinExpiredAt ?? null,
             images: [],
             redBookImages: [],
+            existingImages: estate.images ?? [],
+            existingRedBookImages: estate.redBookImages ?? [],
             phone: prev.phone,
             name: prev.name,
             email: prev.email,
@@ -180,7 +184,7 @@ export default function EditEstatePage() {
     try {
       setIsLoading(true);
       setError(null);
-      const payload = toCreatePostInput(values);
+      const payload = toUpdatePostInput(values);
       await updatePost(postId, payload);
       router.push("/my-estates");
     } catch (err) {
@@ -238,6 +242,77 @@ export default function EditEstatePage() {
             email={values.email}
             phone={values.phone}
           />
+
+          {values.existingImages.length > 0 && (
+            <section className="bg-white p-6 rounded-xl shadow space-y-4">
+              <h2 className="text-lg font-semibold">Ảnh hiện tại</h2>
+              <p className="text-sm text-muted-foreground">
+                Nhấn vào nút X để xóa ảnh khỏi tin đăng.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {values.existingImages.map((url, index) => (
+                  <div key={`${url}-${index}`} className="relative">
+                    <img
+                      src={url}
+                      alt="Ảnh bài viết"
+                      className="w-24 h-24 object-cover rounded-lg border"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="absolute -top-2 -right-2 rounded-full px-2 py-1 text-xs"
+                      onClick={() =>
+                        setValues((prev) => ({
+                          ...prev,
+                          existingImages: prev.existingImages.filter(
+                            (_, i) => i !== index,
+                          ),
+                        }))
+                      }
+                    >
+                      X
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {values.existingRedBookImages.length > 0 && (
+            <section className="bg-white p-6 rounded-xl shadow space-y-4">
+              <h2 className="text-lg font-semibold">Ảnh sổ đỏ hiện tại</h2>
+              <p className="text-sm text-muted-foreground">
+                Nhấn vào nút X để xóa ảnh sổ đỏ khỏi tin đăng.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {values.existingRedBookImages.map((url, index) => (
+                  <div key={`${url}-${index}`} className="relative">
+                    <img
+                      src={url}
+                      alt="Ảnh sổ đỏ"
+                      className="w-24 h-24 object-cover rounded-lg border"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      className="absolute -top-2 -right-2 rounded-full px-2 py-1 text-xs"
+                      onClick={() =>
+                        setValues((prev) => ({
+                          ...prev,
+                          existingRedBookImages:
+                            prev.existingRedBookImages.filter(
+                              (_, i) => i !== index,
+                            ),
+                        }))
+                      }
+                    >
+                      X
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           <ContentSection
             values={values}

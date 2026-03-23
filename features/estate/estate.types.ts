@@ -47,6 +47,11 @@ export type CreatePostInput = {
   email?: string;
 };
 
+export type UpdatePostInput = Partial<CreatePostInput> & {
+  existingImages?: string[];
+  existingRedBookImages?: string[];
+};
+
 export type EstateStatus = "Pending" | "Approved" | "Rejected";
 
 export type Estate = {

@@ -290,17 +290,53 @@ export const getMyPosts = async (
 
 export const updatePost = async (
   postId: string,
-  body: Partial<CreatePostInput>,
+  body: import("./estate.types").UpdatePostInput,
 ): Promise<Estate> => {
-  const { images, redBookImages, pinExpiredAt, pinLevel, isPinned, ...rest } =
-    body;
+  const {
+    images,
+    redBookImages,
+    existingImages,
+    existingRedBookImages,
+    ...textFields
+  } = body;
+
+  const formData = new FormData();
+
+  Object.entries(textFields).forEach(([key, value]) => {
+    if (
+      value === undefined ||
+      value === null ||
+      value === "" ||
+      value === "null"
+    ) {
+      return;
+    }
+
+    formData.append(key, String(value));
+  });
+
+  if (existingImages) {
+    formData.append("existingImages", JSON.stringify(existingImages));
+  }
+
+  if (existingRedBookImages) {
+    formData.append(
+      "existingRedBookImages",
+      JSON.stringify(existingRedBookImages),
+    );
+  }
+
+  images?.forEach((file) => formData.append("images", file));
+  redBookImages?.forEach((file) => formData.append("redBookImages", file));
 
   try {
     const response = await axiosClient.patch<{
       success: boolean;
       data: Estate;
       message?: string;
-    }>(`/posts/${postId}`, rest);
+    }>(`/posts/${postId}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
 
     if (!response.data?.success) {
       throw new Error(response.data?.message || "Failed to update post");

@@ -22,6 +22,8 @@ export type EstateFormState = {
   isNegotiable: boolean;
   images: File[];
   redBookImages: File[];
+  existingImages: string[];
+  existingRedBookImages: string[];
   isPinned: boolean;
   pinLevel: 1 | 2 | null;
   pinExpiredAt: string | null;
@@ -62,6 +64,8 @@ export const createEstateFormDefaults = (
   isNegotiable: false,
   images: [],
   redBookImages: [],
+  existingImages: [],
+  existingRedBookImages: [],
   isPinned: false,
   pinLevel: null,
   pinExpiredAt: null,
@@ -172,4 +176,30 @@ export const toCreatePostInput = (state: EstateFormState): CreatePostInput => ({
   phone: state.phone.trim(),
   name: state.name.trim(),
   email: state.email.trim(),
+});
+
+export const toUpdatePostInput = (state: EstateFormState) => ({
+  title: state.title.trim(),
+  description: state.description.trim(),
+  price: state.price ?? 0,
+  area: state.area ?? 0,
+  province: state.province,
+  district: state.district,
+  ward: state.ward,
+  addressDetail: state.addressDetail.trim() || undefined,
+  lat: state.lat ?? 0,
+  lng: state.lng ?? 0,
+  frontage: state.frontage ?? undefined,
+  entryWidth: state.entryWidth ?? undefined,
+  direction: state.direction.trim() || undefined,
+  floorNumber: state.floorNumber ?? undefined,
+  numberOfBedrooms: state.numberOfBedrooms ?? 0,
+  numberOfBathrooms: state.numberOfBathrooms ?? 0,
+  propertyType: state.propertyType as PropertyType,
+  legalStatus: state.legalStatus.trim(),
+  isNegotiable: state.isNegotiable,
+  images: state.images.length ? state.images : undefined,
+  redBookImages: state.redBookImages,
+  existingImages: state.existingImages,
+  existingRedBookImages: state.existingRedBookImages,
 });
