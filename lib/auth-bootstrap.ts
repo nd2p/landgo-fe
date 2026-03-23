@@ -1,49 +1,63 @@
 import axiosClient from "@/lib/axios";
 import {
 	getAccessToken,
-	isAccessTokenExpired,
-	removeAccessToken,
-	setAccessToken,
 } from "@/lib/auth-token";
 import { getHomePathByRole } from "@/lib/auth-role";
 
-export const refreshAccessTokenIfNeeded = async (): Promise<boolean> => {
-	const accessToken = getAccessToken();
+const AUTH_ME_CACHE_TTL_MS = 5000;
 
-	if (accessToken && !isAccessTokenExpired(accessToken)) {
-		return true;
+let authMePromise: Promise<string | null> | null = null;
+let lastResolvedRole: string | null = null;
+let lastResolvedRoleAt = 0;
+
+const getCurrentUserRole = async (
+	options?: { force?: boolean; cacheTtlMs?: number }
+): Promise<string | null> => {
+	const force = options?.force ?? false;
+	const cacheTtlMs = options?.cacheTtlMs ?? AUTH_ME_CACHE_TTL_MS;
+	const now = Date.now();
+
+	if (!force && now - lastResolvedRoleAt < cacheTtlMs) {
+		return lastResolvedRole;
 	}
 
-	try {
-		const response = await axiosClient.post<{ data?: { accessToken?: string } }>(
-			"/auth/refresh-token"
-		);
+	if (authMePromise) {
+		return authMePromise;
+	}
 
-		const newAccessToken = response.data?.data?.accessToken;
-		if (!newAccessToken) {
-			removeAccessToken();
-			return false;
+	authMePromise = (async () => {
+		try {
+			const response = await axiosClient.get<{ data?: { role?: string } }>("/auth/me");
+			const role = response.data?.data?.role ?? null;
+			lastResolvedRole = role;
+			lastResolvedRoleAt = Date.now();
+			return role;
+		} catch {
+			lastResolvedRole = null;
+			lastResolvedRoleAt = Date.now();
+			return null;
+		} finally {
+			authMePromise = null;
 		}
+	})();
 
-		setAccessToken(newAccessToken);
-		return true;
-	} catch {
-		removeAccessToken();
-		return false;
-	}
+	return authMePromise;
 };
 
 export const getAuthenticatedRedirectPath = async (): Promise<string | null> => {
-	const isAuthenticated = await refreshAccessTokenIfNeeded();
+	const accessToken = getAccessToken();
 
-	if (!isAuthenticated) {
+	if (!accessToken) {
 		return null;
 	}
 
 	try {
-		const response = await axiosClient.get<{ data?: { role?: string } }>("/auth/me");
-		return getHomePathByRole(response.data?.data?.role);
+		const role = await getCurrentUserRole();
+		if (!role) {
+			return null;
+		}
+		return getHomePathByRole(role ?? undefined);
 	} catch {
-		return "/";
+		return null;
 	}
 };

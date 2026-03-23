@@ -8,6 +8,12 @@ import {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:9999/api/v1";
 
+const AUTH_REFRESH_CACHE_TTL_MS = 5000;
+
+let refreshTokenPromise: Promise<string | null> | null = null;
+let lastRefreshTokenValue: string | null = null;
+let lastRefreshTokenAt = 0;
+
 const axiosClient = axios.create({
 	baseURL: API_URL,
 	headers: {
@@ -16,6 +22,50 @@ const axiosClient = axios.create({
 	timeout: 10000,
 	withCredentials: true,
 });
+
+export const refreshAccessToken = async (
+	options?: { force?: boolean; cacheTtlMs?: number }
+): Promise<string | null> => {
+	const force = options?.force ?? false;
+	const cacheTtlMs = options?.cacheTtlMs ?? AUTH_REFRESH_CACHE_TTL_MS;
+	const now = Date.now();
+
+	if (!force && now - lastRefreshTokenAt < cacheTtlMs) {
+		return lastRefreshTokenValue;
+	}
+
+	if (refreshTokenPromise) {
+		return refreshTokenPromise;
+	}
+
+	refreshTokenPromise = (async () => {
+		try {
+			const refreshResponse = await axiosClient.post("/auth/refresh-token");
+			const newAccessToken = refreshResponse.data?.data?.accessToken as string | undefined;
+
+			if (!newAccessToken) {
+				removeAccessToken();
+				lastRefreshTokenValue = null;
+				lastRefreshTokenAt = Date.now();
+				return null;
+			}
+
+			setAccessToken(newAccessToken);
+			lastRefreshTokenValue = newAccessToken;
+			lastRefreshTokenAt = Date.now();
+			return newAccessToken;
+		} catch {
+			removeAccessToken();
+			lastRefreshTokenValue = null;
+			lastRefreshTokenAt = Date.now();
+			return null;
+		} finally {
+			refreshTokenPromise = null;
+		}
+	})();
+
+	return refreshTokenPromise;
+};
 
 axiosClient.interceptors.request.use((config) => {
 	const token = getAccessToken();
@@ -43,14 +93,15 @@ axiosClient.interceptors.response.use(
 			originalRequest._retry = true;
 
 			try {
-				const refreshResponse = await axiosClient.post("/auth/refresh-token");
-				const newAccessToken = refreshResponse.data?.data?.accessToken as string;
+				const newAccessToken = await refreshAccessToken({
+					force: true,
+					cacheTtlMs: 0,
+				});
 
 				if (!newAccessToken) {
 					throw new Error("No access token returned");
 				}
 
-				setAccessToken(newAccessToken);
 				originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 				return axiosClient(originalRequest);
 			} catch (refreshError) {
