@@ -1,4 +1,5 @@
 import axiosClient from "@/lib/axios";
+import { createRequestCache } from "@/lib/utils";
 import { AxiosError } from "axios";
 import type {
   AuthorObject,
@@ -12,54 +13,12 @@ import type {
 
 const ESTATE_REQUEST_CACHE_TTL_MS = 1500;
 
-const inFlightEstateRequests = new Map<string, Promise<unknown>>();
-const recentEstateResponses = new Map<
-  string,
-  { expiresAt: number; value: unknown }
->();
-
-const getDedupedEstateRequest = <T>(
-  key: string,
-  requestFactory: () => Promise<T>,
-): Promise<T> => {
-  const now = Date.now();
-  const cached = recentEstateResponses.get(key);
-
-  if (cached && cached.expiresAt > now) {
-    return Promise.resolve(cached.value as T);
-  }
-
-  if (cached && cached.expiresAt <= now) {
-    recentEstateResponses.delete(key);
-  }
-
-  const inFlight = inFlightEstateRequests.get(key);
-  if (inFlight) {
-    return inFlight as Promise<T>;
-  }
-
-  const requestPromise = requestFactory()
-    .then((result) => {
-      recentEstateResponses.set(key, {
-        expiresAt: Date.now() + ESTATE_REQUEST_CACHE_TTL_MS,
-        value: result,
-      });
-      return result;
-    })
-    .finally(() => {
-      inFlightEstateRequests.delete(key);
-    });
-
-  inFlightEstateRequests.set(key, requestPromise as Promise<unknown>);
-  return requestPromise;
-};
+const estateRequestCache = createRequestCache({
+  successTtlMs: ESTATE_REQUEST_CACHE_TTL_MS,
+});
 
 const invalidateEstateListCache = () => {
-  for (const key of recentEstateResponses.keys()) {
-    if (key.startsWith("getPosts:") || key.startsWith("getMyPosts:")) {
-      recentEstateResponses.delete(key);
-    }
-  }
+  estateRequestCache.invalidateByPrefix(["getPosts:", "getMyPosts:"]);
 };
 
 function mapAuthor(author?: AuthorObject): AuthorObject | undefined {
@@ -179,7 +138,7 @@ export const getPosts = async (
     ? `/posts?${searchParams.toString()}`
     : "/posts";
 
-  return getDedupedEstateRequest(`getPosts:${requestPath}`, async () => {
+  return estateRequestCache.run(`getPosts:${requestPath}`, async () => {
     try {
       const response = await axiosClient.get<GetPostsResponse>(requestPath);
 
@@ -268,7 +227,7 @@ export const getMyPosts = async (
     ? `/posts/my?${searchParams.toString()}`
     : "/posts/my";
 
-  return getDedupedEstateRequest(`getMyPosts:${requestPath}`, async () => {
+  return estateRequestCache.run(`getMyPosts:${requestPath}`, async () => {
     try {
       const response = await axiosClient.get<GetPostsResponse>(requestPath);
 

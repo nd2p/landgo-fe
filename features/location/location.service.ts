@@ -1,15 +1,16 @@
 import { getDistrictsApi, getProvincesApi, getWardsApi } from "./location.api";
 import { IDistrict, IProvince, IWard, Paginated } from "./location.type";
 import { paginationSchema } from "./location.validation";
+import { createRequestCache } from "@/lib/utils";
 
 const LOCATION_REQUEST_CACHE_TTL_MS = 2000;
-const ERROR_CACHE_TTL_MS = 500; 
+const ERROR_CACHE_TTL_MS = 500;
 
-const inFlightRequests = new Map<string, Promise<unknown>>();
-const cache = new Map<
-  string,
-  { expiresAt: number; value: unknown }
->();
+const locationRequestCache = createRequestCache({
+  successTtlMs: LOCATION_REQUEST_CACHE_TTL_MS,
+  errorTtlMs: ERROR_CACHE_TTL_MS,
+  cacheErrors: true,
+});
 
 const normalizeValue = (val: unknown) => String(val ?? "");
 
@@ -34,67 +35,13 @@ const validatePagination = (params?: Paginated) =>
     stripUnknown: true,
   });
 
-const fetchWithCache = <T>(
-  key: string,
-  requestFactory: () => Promise<T>
-): Promise<T> => {
-  const now = Date.now();
-
-  const cached = cache.get(key);
-  if (cached && cached.expiresAt > now) {
-    return Promise.resolve(cached.value as T);
-  }
-
-  if (cached) {
-    cache.delete(key);
-  }
-
-  const inFlight = inFlightRequests.get(key);
-  if (inFlight) {
-    return inFlight as Promise<T>;
-  }
-
-  const requestPromise = requestFactory()
-    .then((result) => {
-      cache.set(key, {
-        expiresAt: Date.now() + LOCATION_REQUEST_CACHE_TTL_MS,
-        value: result,
-      });
-
-      setTimeout(() => {
-        cache.delete(key);
-      }, LOCATION_REQUEST_CACHE_TTL_MS);
-
-      return result;
-    })
-    .catch((err) => {
-      // optional: cache error (tránh spam API)
-      cache.set(key, {
-        expiresAt: Date.now() + ERROR_CACHE_TTL_MS,
-        value: Promise.reject(err),
-      });
-
-      setTimeout(() => {
-        cache.delete(key);
-      }, ERROR_CACHE_TTL_MS);
-
-      throw err;
-    })
-    .finally(() => {
-      inFlightRequests.delete(key);
-    });
-
-  inFlightRequests.set(key, requestPromise);
-  return requestPromise;
-};
-
 export const getProvinceService = async (params?: Paginated) => {
   try {
     const validated = await validatePagination(params);
 
     const key = buildRequestKey("provinces", validated);
 
-    return fetchWithCache<IProvince[]>(key, async () => {
+    return locationRequestCache.run<IProvince[]>(key, async () => {
       const res = await getProvincesApi(validated);
       return res.data.data;
     });
@@ -116,7 +63,7 @@ export const getDistrictsService = async (
       validated
     );
 
-    return fetchWithCache<IDistrict[]>(key, async () => {
+    return locationRequestCache.run<IDistrict[]>(key, async () => {
       const res = await getDistrictsApi(provinceId, validated);
       return res.data.data;
     });
@@ -138,7 +85,7 @@ export const getWardsService = async (
       validated
     );
 
-    return fetchWithCache<IWard[]>(key, async () => {
+    return locationRequestCache.run<IWard[]>(key, async () => {
       const res = await getWardsApi(districtId, validated);
       return res.data.data;
     });
