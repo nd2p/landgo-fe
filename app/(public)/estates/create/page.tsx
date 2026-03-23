@@ -20,6 +20,7 @@ import {
 } from "@/features/location/location.service";
 import { IDistrict, IProvince, IWard } from "@/features/location/location.type";
 import { getMeService } from "@/features/auth/auth.service";
+import { createSepayPayment } from "@/features/subscription/subscription.service";
 import AddressSection from "./components/address-section";
 import MainInfoSection from "./components/main-info-section";
 import LegalSection from "./components/legal-section";
@@ -114,7 +115,27 @@ export default function CreatePostPage() {
     try {
       const payload = toCreatePostInput(values);
       const response = await createPostsApi(payload);
-      console.log("Post created:", response.data);
+      const createdPostId = response.data?.data?._id;
+
+      if (values.isPinned && values.pinLevel && values.pinDurationType && createdPostId) {
+        console.log("Creating payment for pinned post:", {
+          postId: createdPostId,
+          pinLevel: values.pinLevel,
+          pinDurationType: values.pinDurationType,
+        });
+        try {
+          const payment = await createSepayPayment({
+            postId: createdPostId,
+            pinLevel: values.pinLevel,
+            durationType: values.pinDurationType,
+          });
+          router.push(`/payments/${payment._id}`);
+          return;
+        } catch (paymentError) {
+          console.error("Create payment error:", paymentError);
+        }
+      }
+
       router.push("/my-estates");
     } catch (error) {
       console.error("Create post error:", error);

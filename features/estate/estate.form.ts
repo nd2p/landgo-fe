@@ -1,4 +1,4 @@
-import { CreatePostInput, PropertyType } from "./estate.types";
+import { CreatePostInput, PaymentDurationType, PropertyType } from "./estate.types";
 
 export type EstateFormState = {
   title: string;
@@ -25,6 +25,7 @@ export type EstateFormState = {
   isPinned: boolean;
   pinLevel: 1 | 2 | null;
   pinExpiredAt: string | null;
+  pinDurationType: PaymentDurationType | "";
   phone: string;
   name: string;
   email: string;
@@ -64,6 +65,7 @@ export const createEstateFormDefaults = (
   isPinned: false,
   pinLevel: null,
   pinExpiredAt: null,
+  pinDurationType: "",
   phone: "",
   name: "",
   email: "",
@@ -133,8 +135,8 @@ export const validateEstateForm = (
     if (!state.pinLevel) {
       errors.pinLevel = "Vui lòng chọn loại tin VIP";
     }
-    if (!state.pinExpiredAt) {
-      errors.pinExpiredAt = "Vui lòng chọn thời gian ghim";
+    if (!state.pinDurationType) {
+      errors.pinExpiredAt = "Vui long chon thoi gian ghim";
     }
   }
 
@@ -163,9 +165,10 @@ export const toCreatePostInput = (state: EstateFormState): CreatePostInput => ({
   isNegotiable: state.isNegotiable,
   images: state.images.length ? state.images : undefined,
   redBookImages: state.redBookImages,
-  isPinned: state.isPinned,
-  pinLevel: state.isPinned ? state.pinLevel : null,
-  pinExpiredAt: state.isPinned ? state.pinExpiredAt : null,
+  isPinned: false,
+  pinLevel: null,
+  pinExpiredAt: null,
+  pinDurationType: "",
   phone: state.phone.trim(),
   name: state.name.trim(),
   email: state.email.trim(),
