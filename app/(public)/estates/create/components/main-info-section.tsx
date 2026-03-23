@@ -34,7 +34,9 @@ export default function MainInfoSection({
 
   return (
     <section className="bg-white p-6 rounded-xl shadow space-y-4">
-      <h2 className="text-lg font-semibold">Thông tin chính</h2>
+      <h2 className="text-lg font-semibold">
+        Thông tin chính <span className="text-red-500">*</span>
+      </h2>
 
       <Select
         value={values.propertyType}
@@ -72,9 +74,7 @@ export default function MainInfoSection({
             required
             disabled={isLocked}
           />
-          {errors.area && (
-            <p className="text-red-500 text-sm">{errors.area}</p>
-          )}
+          {errors.area && <p className="text-red-500 text-sm">{errors.area}</p>}
         </div>
 
         <div className="space-y-1">
@@ -156,7 +156,10 @@ export default function MainInfoSection({
                 placeholder="m²"
                 value={values.frontage ?? ""}
                 onChange={(event) =>
-                  onFieldChange("frontage", parseNumberInput(event.target.value))
+                  onFieldChange(
+                    "frontage",
+                    parseNumberInput(event.target.value),
+                  )
                 }
                 disabled={isLocked}
               />

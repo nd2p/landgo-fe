@@ -164,30 +164,30 @@ export default function AdminDashboardPage() {
     return [
       {
         key: "active-posts",
-        title: "Active Posts",
+        title: "Bài đăng đang hoạt động",
         value: numberFormatter.format(stats.byStatus.active),
-        sub: `${stats.overview.activeRate}% of all posts`,
+        sub: `Chiếm ${stats.overview.activeRate}% tổng số bài đăng`,
         icon: FileText,
       },
       {
         key: "inactive-posts",
-        title: "Inactive Posts",
+        title: "Bài đăng ngừng hoạt động",
         value: numberFormatter.format(stats.byStatus.inactive),
-        sub: `Total posts: ${numberFormatter.format(stats.overview.totalAllPosts)}`,
+        sub: `Tổng sô bài đăng: ${numberFormatter.format(stats.overview.totalAllPosts)}`,
         icon: Shield,
       },
       {
         key: "users",
-        title: "Total Users",
+        title: "Toàn bộ người dùng",
         value: numberFormatter.format(totalUsers),
-        sub: "User management overview",
+        sub: "Tổng quan về người dùng trong hệ thống",
         icon: Users,
       },
       {
         key: "views",
-        title: "Total Views",
+        title: "Tổng lượt theo dõi",
         value: numberFormatter.format(stats.overview.totalViews),
-        sub: `${numberFormatter.format(stats.overview.totalComments)} comments`,
+        sub: `Hiện có ${numberFormatter.format(stats.overview.totalComments)} bình luận`,
         icon: Eye,
       },
     ];
@@ -203,19 +203,19 @@ export default function AdminDashboardPage() {
             </p>
             <h1 className="text-3xl font-bold tracking-tight">LandGo Overview</h1>
             <p className="text-sm text-muted-foreground">
-              Chỉ giữ dữ liệu tổng quan, chi tiết thao tác nằm trong tab Posts và Users.
+              Chỉ giữ dữ liệu tổng quan, chi tiết thao tác nằm trong tab Bảng tin và Người dùng.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button asChild>
               <Link href="/admin/posts">
-                Go To Posts
+                Đến Bảng Tin
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
             <Button asChild variant="outline">
               <Link href="/admin/users">
-                Go To Users
+                Đến Người Dùng
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -248,27 +248,27 @@ export default function AdminDashboardPage() {
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Post Status Overview</CardTitle>
-            <CardDescription>Tỷ lệ active/inactive của toàn bộ bài đăng</CardDescription>
+            <CardTitle>Tổng quan trạng thái bài đăng</CardTitle>
+            <CardDescription>Tỷ lệ hoạt động/ngưng hoạt động của toàn bộ bài đăng trong hệ thống</CardDescription>
           </CardHeader>
           <CardContent>
             {loading || !stats ? (
               <Skeleton className="h-44 w-full" />
             ) : (
               <PieChart
-                centerLabel="Posts"
+                centerLabel="Bài Đăng"
                 centerValue={stats.overview.totalAllPosts}
                 items={[
                   {
                     key: "active",
-                    label: "Active",
+                    label: "Đang hoạt động",
                     value: stats.byStatus.active,
                     color: "#16a34a",
                     badge: "default",
                   },
                   {
                     key: "inactive",
-                    label: "Inactive",
+                    label: "Ngưng hoạt động",
                     value: stats.byStatus.inactive,
                     color: "#6b7280",
                     badge: "secondary",
@@ -281,7 +281,7 @@ export default function AdminDashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Engagement Overview</CardTitle>
+            <CardTitle>Tổng quan số lượng tương tác</CardTitle>
             <CardDescription>Các chỉ số tổng quan cần theo dõi hàng ngày</CardDescription>
           </CardHeader>
           <CardContent>
@@ -293,23 +293,23 @@ export default function AdminDashboardPage() {
               </div>
             ) : (
               <PieChart
-                centerLabel="Signals"
+                centerLabel="Chỉ số"
                 items={[
                   {
                     key: "views",
-                    label: "Views",
+                    label: "Lượt xem",
                     value: stats.overview.totalViews,
                     color: "#3b82f6",
                   },
                   {
                     key: "comments",
-                    label: "Comments",
+                    label: "Bình luận",
                     value: stats.overview.totalComments,
                     color: "#f59e0b",
                   },
                   {
                     key: "pinned",
-                    label: "Pinned",
+                    label: "Đã ghim",
                     value: stats.overview.pinnedPosts,
                     color: "#8b5cf6",
                   },
@@ -322,7 +322,7 @@ export default function AdminDashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Quick Navigation</CardTitle>
+          <CardTitle>Điều hướng nhanh chóng</CardTitle>
           <CardDescription>
             Dashboard chỉ overview. Vào từng tab để xử lý chi tiết.
           </CardDescription>
@@ -332,12 +332,12 @@ export default function AdminDashboardPage() {
             href="/admin/posts"
             className="group rounded-lg border p-4 transition-colors hover:border-primary/40 hover:bg-primary/5"
           >
-            <p className="text-sm font-semibold">Posts Management</p>
+            <p className="text-sm font-semibold">Quản lý bài đăng</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Bật/tắt active, xem thống kê chi tiết, quản lý toàn bộ bài đăng.
+              Bật/tắt trạng thái, xem thống kê chi tiết, quản lý toàn bộ bài đăng.
             </p>
             <span className="mt-3 inline-flex items-center text-xs text-primary">
-              Open posts
+              Xem ngay
               <ArrowRight className="ml-1 h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </span>
           </Link>
@@ -346,12 +346,12 @@ export default function AdminDashboardPage() {
             href="/admin/users"
             className="group rounded-lg border p-4 transition-colors hover:border-primary/40 hover:bg-primary/5"
           >
-            <p className="text-sm font-semibold">Users Management</p>
+            <p className="text-sm font-semibold">Quản lý người dùng</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Quản lý tài khoản, role và thông tin user.
+              Quản lý tài khoản, vai trò và thông tin người dùng.
             </p>
             <span className="mt-3 inline-flex items-center text-xs text-primary">
-              Open users
+              Xem ngay
               <ArrowRight className="ml-1 h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </span>
           </Link>

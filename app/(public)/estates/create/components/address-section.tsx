@@ -36,7 +36,9 @@ export default function AddressSection({
 }: Props) {
   return (
     <section className="bg-white p-6 rounded-xl shadow space-y-4">
-      <h2 className="text-lg font-semibold">Địa chỉ</h2>
+      <h2 className="text-lg font-semibold">
+        Địa chỉ <span className="text-red-500">*</span>
+      </h2>
 
       <Select value={values.province} onValueChange={onProvinceChange}>
         <SelectTrigger className="w-full" aria-required="true">
@@ -89,9 +91,7 @@ export default function AddressSection({
 
       <Input
         value={values.addressDetail}
-        onChange={(event) =>
-          onFieldChange("addressDetail", event.target.value)
-        }
+        onChange={(event) => onFieldChange("addressDetail", event.target.value)}
         placeholder="Địa chỉ chi tiết (tuỳ chọn)"
       />
       {errors.addressDetail && (

@@ -75,74 +75,73 @@ export const parseNumberInput = (value: string): number | null => {
   const parsed = Number(value);
   return Number.isNaN(parsed) ? null : parsed;
 };
-
 export const validateEstateForm = (
   state: EstateFormState,
   options: { isEdit?: boolean } = {},
 ): EstateFormErrors => {
   const errors: EstateFormErrors = {};
 
-  if (!state.province) errors.province = "Vui long chon tinh / thanh pho";
-  if (!state.district) errors.district = "Vui long chon quan / huyen";
-  if (!state.ward) errors.ward = "Vui long chon phuong / xa";
+  if (!state.province) errors.province = "Vui lòng chọn tỉnh / thành phố";
+  if (!state.district) errors.district = "Vui lòng chọn quận / huyện";
+  if (!state.ward) errors.ward = "Vui lòng chọn phường / xã";
 
   if (!state.propertyType) {
-    errors.propertyType = "Vui long chon loai bat dong san";
+    errors.propertyType = "Vui lòng chọn loại bất động sản";
   }
 
   if (state.area === null) {
-    errors.area = "Vui long nhap dien tich";
+    errors.area = "Vui lòng nhập diện tích";
   } else if (state.area < 0) {
-    errors.area = "Dien tich khong hop le";
+    errors.area = "Diện tích không hợp lệ";
   }
 
   if (state.price === null) {
-    errors.price = "Vui long nhap gia";
+    errors.price = "Vui lòng nhập giá";
   } else if (state.price < 0) {
-    errors.price = "Gia khong hop le";
+    errors.price = "Giá không hợp lệ";
   }
 
   if (state.numberOfBedrooms === null) {
-    errors.numberOfBedrooms = "Vui long nhap so phong ngu";
+    errors.numberOfBedrooms = "Vui lòng nhập số phòng ngủ";
   } else if (state.numberOfBedrooms < 0) {
-    errors.numberOfBedrooms = "So phong ngu khong hop le";
+    errors.numberOfBedrooms = "Số phòng ngủ không hợp lệ";
   }
 
   if (state.numberOfBathrooms === null) {
-    errors.numberOfBathrooms = "Vui long nhap so phong tam";
+    errors.numberOfBathrooms = "Vui lòng nhập số phòng tắm";
   } else if (state.numberOfBathrooms < 0) {
-    errors.numberOfBathrooms = "So phong tam khong hop le";
+    errors.numberOfBathrooms = "Số phòng tắm không hợp lệ";
   }
 
   if (!state.legalStatus.trim()) {
-    errors.legalStatus = "Vui long nhap tinh trang phap ly";
+    errors.legalStatus = "Vui lòng nhập tình trạng pháp lý";
   }
 
-  if (!state.title.trim()) errors.title = "Vui long nhap tieu de";
-  if (!state.description.trim()) errors.description = "Vui long nhap mo ta";
+  if (!state.title.trim()) errors.title = "Vui lòng nhập tiêu đề";
+  if (!state.description.trim()) errors.description = "Vui lòng nhập mô tả";
 
   if (!options.isEdit) {
-    if (!state.images.length) errors.images = "Vui long tai it nhat 1 anh";
+    if (!state.images.length) {
+      errors.images = "Vui lòng tải lên ít nhất 1 ảnh";
+    }
     if (!state.redBookImages.length) {
-      errors.redBookImages = "Vui long tai it nhat 1 anh so do";
+      errors.redBookImages = "Vui lòng tải lên ít nhất 1 ảnh sổ đỏ";
     }
   }
 
   if (state.isPinned) {
     if (!state.pinLevel) {
-      errors.pinLevel = "Vui long chon loai tin VIP";
+      errors.pinLevel = "Vui lòng chọn loại tin VIP";
     }
     if (!state.pinExpiredAt) {
-      errors.pinExpiredAt = "Vui long chon thoi gian ghim";
+      errors.pinExpiredAt = "Vui lòng chọn thời gian ghim";
     }
   }
 
   return errors;
 };
 
-export const toCreatePostInput = (
-  state: EstateFormState,
-): CreatePostInput => ({
+export const toCreatePostInput = (state: EstateFormState): CreatePostInput => ({
   title: state.title.trim(),
   description: state.description.trim(),
   price: state.price ?? 0,
