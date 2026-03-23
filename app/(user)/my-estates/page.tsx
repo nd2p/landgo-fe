@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import * as yup from "yup";
 import { Resolver, useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -9,7 +10,7 @@ import EstateCard from "@/components/estate/estate-card";
 import EmptyState from "@/components/common/empty-state";
 import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/ui/loading";
-import { getMyPosts } from "@/features/estate/estate.api";
+import { deletePost, getMyPosts } from "@/features/estate/estate.api";
 import type { Estate } from "@/features/estate/estate.types";
 
 const filterSchema = yup.object({
@@ -22,13 +23,14 @@ export default function MyEstatesPage() {
   const [estates, setEstates] = useState<Estate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const form = useForm<FilterInput>({
     resolver: yupResolver(filterSchema) as Resolver<FilterInput>,
     defaultValues: { status: "" },
   });
 
-  const { register, handleSubmit, getValues } = form;
+  const { getValues } = form;
 
   const fetchPosts = async (filters: FilterInput) => {
     try {
@@ -50,33 +52,28 @@ export default function MyEstatesPage() {
     void fetchPosts(getValues());
   }, [getValues]);
 
-  const onSubmit = (values: FilterInput) => {
-    void fetchPosts(values);
+  const handleDelete = async (estateId: string) => {
+    const confirmed = window.confirm(
+      "Bạn có chắc muốn xóa bài này không? Hành động này không thể hoàn tác.",
+    );
+    if (!confirmed) return;
+
+    try {
+      setDeletingId(estateId);
+      setError(null);
+      await deletePost(estateId);
+      await fetchPosts(getValues());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete post");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-slate-900">Tin của tôi</h1>
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="flex flex-wrap items-center gap-2"
-        >
-          <select
-            className="border-input h-9 rounded-md border px-3 text-sm"
-            {...register("status")}
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="pending">Đang chờ</option>
-            <option value="approved">Đã duyệt</option>
-            <option value="rejected">Từ chối</option>
-            <option value="active">Đang hiển thị</option>
-          </select>
-
-          <Button type="submit" size="sm">
-            Lọc
-          </Button>
-        </form>
       </div>
 
       {isLoading ? (
@@ -92,7 +89,30 @@ export default function MyEstatesPage() {
       ) : (
         <div className="space-y-4">
           {estates.map((estate) => (
-            <EstateCard key={estate._id} estate={estate} viewMode="list" />
+            <div
+              key={estate._id}
+              className="flex items-start justify-between gap-4"
+            >
+              <div className="flex-1">
+                <EstateCard estate={estate} viewMode="list" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Button asChild size="sm" variant="outline">
+                  <Link href={`/my-estates/${estate.slug}/edit`}>
+                    Chỉnh sửa
+                  </Link>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  disabled={deletingId === estate._id}
+                  onClick={() => handleDelete(estate._id)}
+                >
+                  {deletingId === estate._id ? "Đang xóa..." : "Xóa bài"}
+                </Button>
+              </div>
+            </div>
           ))}
         </div>
       )}

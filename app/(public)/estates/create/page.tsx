@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Resolver, useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -24,6 +25,7 @@ import ContactSection from "./components/contact-section";
 import PinSection from "./components/pin-section";
 
 export default function CreatePostPage() {
+  const router = useRouter();
   const [provinces, setProvinces] = useState<IProvince[]>([]);
   const [districts, setDistricts] = useState<IDistrict[]>([]);
   const [wards, setWards] = useState<IWard[]>([]);
@@ -81,6 +83,7 @@ export default function CreatePostPage() {
     try {
       const response = await createPostsServices(data);
       console.log("Post created:", response);
+      router.push("/my-estates");
     } catch (error) {
       console.error("Create post error:", error);
       console.log("images:", data.images);
@@ -129,7 +132,7 @@ export default function CreatePostPage() {
           <PinSection form={form} />
 
           <div className="flex justify-end gap-4">
-            <Button variant="outline" type="button">
+            <Button variant="outline" type="button" onClick={() => router.back()}>
               Hủy
             </Button>
             <Button type="submit">Đăng tin</Button>

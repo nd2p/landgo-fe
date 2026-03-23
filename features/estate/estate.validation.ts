@@ -88,13 +88,21 @@ export const createPostSchema = yup.object({
 
   redBookImages: yup
     .array(yup.mixed<File>().required())
-    .min(1, "Vui lòng upload ít nhất 1 ảnh sổ đỏ")
-    .required() as yup.ArraySchema<File[], yup.AnyObject>,
+    .when("$isEdit", {
+      is: true,
+      then: (schema) => schema.optional(),
+      otherwise: (schema) =>
+        schema.min(1, "Vui lòng upload ít nhất 1 ảnh sổ đỏ").required(),
+    }) as yup.ArraySchema<File[], yup.AnyObject>,
 
   images: yup
     .array(yup.mixed<File>().required())
-    .min(1, "Vui lÃ²ng upload Ã­t nháº¥t 1 áº£nh")
-    .required() as yup.ArraySchema<File[], yup.AnyObject>,
+    .when("$isEdit", {
+      is: true,
+      then: (schema) => schema.optional(),
+      otherwise: (schema) =>
+        schema.min(1, "Vui lòng upload ít nhất 1 ảnh").required(),
+    }) as yup.ArraySchema<File[], yup.AnyObject>,
 
   title: yup
     .string()
@@ -121,17 +129,29 @@ export const createPostSchema = yup.object({
     .required("Vui lòng nhập email")
     .email("Email không đúng định dạng"),
 
-  isPinned: yup.boolean().optional(),
+  isPinned: yup.boolean().required(),
 
   pinLevel: yup
     .number()
     .transform((value, originalValue) => (originalValue === "" ? null : value))
     .typeError("Pin level phải là số")
     .nullable()
-    .optional()
+    .oneOf([null, 1, 2], "Pin level không hợp lệ")
+    .when("isPinned", {
+      is: true,
+      then: (schema) => schema.required("Vui lòng chọn loại tin VIP"),
+      otherwise: (schema) => schema.optional(),
+    })
     .min(0, "Pin level không được âm"),
 
-  pinExpiredAt: yup.string().nullable().optional(),
+  pinExpiredAt: yup
+    .string()
+    .nullable()
+    .when("isPinned", {
+      is: true,
+      then: (schema) => schema.required("Vui lòng chọn thời gian ghim"),
+      otherwise: (schema) => schema.optional(),
+    }),
 });
 
 export type CreatePostInput = yup.InferType<typeof createPostSchema>;

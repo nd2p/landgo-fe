@@ -13,38 +13,40 @@ export default async function EstateDetailPage({
 }) {
   const { slug } = await params;
 
-  try {
-    const estate = await getEstateBySlug(slug);
+  const estate = await getEstateBySlug(slug);
 
-    if (!estate) {
-      return notFound();
-    }
-
-    return (
-      <main className="container mx-auto px-4 py-6 md:py-8 lg:max-w-6xl">
-        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_320px]">
-          {/* Main Content Column */}
-          <div className="flex flex-col gap-6 w-full overflow-hidden">
-            <EstateGallery images={estate.images} title={estate.title} />
-
-            <EstateDetailInfo estate={estate} />
-
-            <div className="mt-4">
-              <h2 className="mb-4 text-xl font-bold md:text-2xl">Xem trên bản đồ</h2>
-              <EstateMapView address={estate.addressDetail} lat={estate.lat} lng={estate.lng} />
-            </div>
-
-            <EstateRecommendations currentEstate={estate} />
-          </div>
-
-          {/* Sidebar Column */}
-          <div className="w-full lg:sticky lg:top-8">
-            <EstateAuthorSidebar author={estate.author} estate={estate} />
-          </div>
-        </div>
-      </main>
-    );
-  } catch (error) {
+  if (!estate) {
     return notFound();
   }
+
+  return (
+    <main className="container mx-auto px-4 py-6 md:py-8 lg:max-w-6xl">
+      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[1fr_320px]">
+        {/* Main Content Column */}
+        <div className="flex flex-col gap-6 w-full overflow-hidden">
+          <EstateGallery images={estate.images} title={estate.title} />
+
+          <EstateDetailInfo estate={estate} />
+
+          <div className="mt-4">
+            <h2 className="mb-4 text-xl font-bold md:text-2xl">
+              Xem trên bản đồ
+            </h2>
+            <EstateMapView
+              address={estate.addressDetail}
+              lat={estate.lat}
+              lng={estate.lng}
+            />
+          </div>
+
+          <EstateRecommendations currentEstate={estate} />
+        </div>
+
+        {/* Sidebar Column */}
+        <div className="w-full lg:sticky lg:top-8">
+          <EstateAuthorSidebar author={estate.author} estate={estate} />
+        </div>
+      </div>
+    </main>
+  );
 }
