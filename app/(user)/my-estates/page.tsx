@@ -2,9 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import * as yup from "yup";
-import { Resolver, useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
 
 import EstateCard from "@/components/estate/estate-card";
 import EmptyState from "@/components/common/empty-state";
@@ -13,32 +10,17 @@ import { Loading } from "@/components/ui/loading";
 import { deletePost, getMyPosts } from "@/features/estate/estate.api";
 import type { Estate } from "@/features/estate/estate.types";
 
-const filterSchema = yup.object({
-  status: yup.string().optional(),
-});
-
-type FilterInput = yup.InferType<typeof filterSchema>;
-
 export default function MyEstatesPage() {
   const [estates, setEstates] = useState<Estate[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const form = useForm<FilterInput>({
-    resolver: yupResolver(filterSchema) as Resolver<FilterInput>,
-    defaultValues: { status: "" },
-  });
-
-  const { getValues } = form;
-
-  const fetchPosts = async (filters: FilterInput) => {
+  const fetchPosts = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const result = await getMyPosts({
-        status: filters.status || undefined,
-      });
+      const result = await getMyPosts();
       setEstates(result.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load posts");
@@ -49,12 +31,12 @@ export default function MyEstatesPage() {
   };
 
   useEffect(() => {
-    void fetchPosts(getValues());
-  }, [getValues]);
+    void fetchPosts();
+  }, []);
 
   const handleDelete = async (estateId: string) => {
     const confirmed = window.confirm(
-      "Bạn có chắc muốn xóa bài này không? Hành động này không thể hoàn tác.",
+      "Bạn có chắc muốn xoá bài này không? Hành động này không thể hoàn tác.",
     );
     if (!confirmed) return;
 
@@ -62,7 +44,7 @@ export default function MyEstatesPage() {
       setDeletingId(estateId);
       setError(null);
       await deletePost(estateId);
-      await fetchPosts(getValues());
+      await fetchPosts();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete post");
     } finally {
@@ -109,7 +91,7 @@ export default function MyEstatesPage() {
                   disabled={deletingId === estate._id}
                   onClick={() => handleDelete(estate._id)}
                 >
-                  {deletingId === estate._id ? "Đang xóa..." : "Xóa bài"}
+                  {deletingId === estate._id ? "Đang xoá..." : "Xoá bài"}
                 </Button>
               </div>
             </div>

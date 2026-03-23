@@ -1,22 +1,20 @@
 import { useMemo, useState } from "react";
-import { UseFormReturn, useWatch } from "react-hook-form";
-import { CreatePostInput } from "@/features/estate/estate.validation";
+import type {
+  EstateFormErrors,
+  EstateFormState,
+  FieldChangeHandler,
+} from "@/features/estate/estate.form";
 
 type Props = {
-  form: UseFormReturn<CreatePostInput>;
+  values: EstateFormState;
+  errors: EstateFormErrors;
+  onFieldChange: FieldChangeHandler;
 };
 
-export default function PinSection({ form }: Props) {
-  const {
-    register,
-    setValue,
-    control,
-    formState: { errors },
-  } = form;
-
-  const isPinned = useWatch({ control, name: "isPinned" });
-  const pinLevel = useWatch({ control, name: "pinLevel" });
+export default function PinSection({ values, errors, onFieldChange }: Props) {
   const [selectedDays, setSelectedDays] = useState(0);
+  const isPinned = values.isPinned;
+  const pinLevel = values.pinLevel;
 
   const dailyPrice = useMemo(() => {
     if (pinLevel === 1) return 30000;
@@ -37,9 +35,9 @@ export default function PinSection({ form }: Props) {
               type="radio"
               checked={!isPinned}
               onChange={() => {
-                setValue("isPinned", false);
-                setValue("pinLevel", null);
-                setValue("pinExpiredAt", null);
+                onFieldChange("isPinned", false);
+                onFieldChange("pinLevel", null);
+                onFieldChange("pinExpiredAt", null);
                 setSelectedDays(0);
               }}
             />
@@ -57,7 +55,7 @@ export default function PinSection({ form }: Props) {
               type="radio"
               checked={Boolean(isPinned)}
               onChange={() => {
-                setValue("isPinned", true);
+                onFieldChange("isPinned", true);
               }}
             />
             <span className="font-semibold text-slate-900">Tin VIP</span>
@@ -71,18 +69,20 @@ export default function PinSection({ form }: Props) {
               <select
                 className="border-input w-full rounded-md border px-3 py-2 text-sm"
                 disabled={!isPinned}
-                {...register("pinLevel", {
-                  setValueAs: (value) => (value === "" ? null : Number(value)),
-                })}
+                value={pinLevel ? String(pinLevel) : ""}
+                onChange={(event) => {
+                  const nextValue = event.target.value
+                    ? (Number(event.target.value) as 1 | 2)
+                    : null;
+                  onFieldChange("pinLevel", nextValue);
+                }}
               >
                 <option value="">Chọn Level</option>
                 <option value="1">VIP - 30.000 VND / ngày</option>
                 <option value="2">SUPPER - 50.000 VND / ngày</option>
               </select>
               {errors.pinLevel && (
-                <p className="text-red-500 text-sm">
-                  {errors.pinLevel.message}
-                </p>
+                <p className="text-red-500 text-sm">{errors.pinLevel}</p>
               )}
             </div>
 
@@ -93,17 +93,18 @@ export default function PinSection({ form }: Props) {
               <select
                 className="border-input w-full rounded-md border px-3 py-2 text-sm"
                 disabled={!isPinned}
+                value={selectedDays ? String(selectedDays) : ""}
                 onChange={(event) => {
                   const days = Number(event.target.value);
                   if (!days) {
-                    setValue("pinExpiredAt", null);
+                    onFieldChange("pinExpiredAt", null);
                     setSelectedDays(0);
                     return;
                   }
                   setSelectedDays(days);
                   const end = new Date();
                   end.setDate(end.getDate() + days);
-                  setValue("pinExpiredAt", end.toISOString());
+                  onFieldChange("pinExpiredAt", end.toISOString());
                 }}
               >
                 <option value="">Chọn số ngày</option>
@@ -113,15 +114,13 @@ export default function PinSection({ form }: Props) {
                 <option value="30">30 ngay</option>
               </select>
               {errors.pinExpiredAt && (
-                <p className="text-red-500 text-sm">
-                  {errors.pinExpiredAt.message}
-                </p>
+                <p className="text-red-500 text-sm">{errors.pinExpiredAt}</p>
               )}
             </div>
           </div>
 
           <div className="flex items-center justify-between text-sm text-slate-700">
-            <span>Tổnge chi phí</span>
+            <span>Tổng chi phí</span>
             <span className="font-semibold text-slate-900">
               {dailyPrice && durationDays
                 ? (dailyPrice * durationDays).toLocaleString("vi-VN") + " VND"

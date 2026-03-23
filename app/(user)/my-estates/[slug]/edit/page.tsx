@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Resolver, useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
 
 import { Button } from "@/components/ui/button";
 import {
-  CreatePostInput,
-  createPostSchema,
-} from "@/features/estate/estate.validation";
+  createEstateFormDefaults,
+  type EstateFormErrors,
+  type EstateFormState,
+  type FieldChangeHandler,
+  toCreatePostInput,
+  validateEstateForm,
+} from "@/features/estate/estate.form";
 import { PropertyType } from "@/features/estate/estate.types";
 import {
   getDistrictsService,
@@ -36,59 +38,78 @@ export default function EditEstatePage() {
   const [provinces, setProvinces] = useState<IProvince[]>([]);
   const [districts, setDistricts] = useState<IDistrict[]>([]);
   const [wards, setWards] = useState<IWard[]>([]);
-  const [selectedProvince, setSelectedProvince] = useState("");
-  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [values, setValues] = useState<EstateFormState>(() =>
+    createEstateFormDefaults(),
+  );
+  const [errors, setErrors] = useState<EstateFormErrors>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const form = useForm<CreatePostInput>({
-    resolver: yupResolver(createPostSchema, {
-      context: { isEdit: true },
-    }) as Resolver<CreatePostInput>,
-    defaultValues: {
-      phone: "",
-      name: "",
-      email: "",
-      lat: 0,
-      lng: 0,
-      numberOfBedrooms: 0,
-      numberOfBathrooms: 0,
-      isNegotiable: false,
-      isPinned: false,
-      pinLevel: null,
-      pinExpiredAt: null,
-      images: [],
-      redBookImages: [],
-    },
-  });
+  const clearFieldError = (field: keyof EstateFormErrors) => {
+    setErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
 
-  const { handleSubmit, setValue, watch, reset } = form;
+  const onFieldChange: FieldChangeHandler = (field, value) => {
+    setValues((prev) => ({ ...prev, [field]: value }));
+    clearFieldError(field);
+  };
+
+  const handleProvinceChange = (value: string) => {
+    setValues((prev) => ({
+      ...prev,
+      province: value,
+      district: "",
+      ward: "",
+    }));
+    setDistricts([]);
+    setWards([]);
+    clearFieldError("province");
+    clearFieldError("district");
+    clearFieldError("ward");
+  };
+
+  const handleDistrictChange = (value: string) => {
+    setValues((prev) => ({
+      ...prev,
+      district: value,
+      ward: "",
+    }));
+    setWards([]);
+    clearFieldError("district");
+    clearFieldError("ward");
+  };
 
   useEffect(() => {
     getProvinceService().then(setProvinces).catch(console.error);
   }, []);
 
   useEffect(() => {
-    if (!selectedProvince) return;
-    getDistrictsService(selectedProvince)
-      .then(setDistricts)
-      .catch(console.error);
-  }, [selectedProvince]);
+    if (!values.province) return;
+    getDistrictsService(values.province).then(setDistricts).catch(console.error);
+  }, [values.province]);
 
   useEffect(() => {
-    if (!selectedDistrict) return;
-    getWardsService(selectedDistrict).then(setWards).catch(console.error);
-  }, [selectedDistrict]);
+    if (!values.district) return;
+    getWardsService(values.district).then(setWards).catch(console.error);
+  }, [values.district]);
 
   useEffect(() => {
     getMeService()
       .then((user) => {
-        setValue("phone", user.phone);
-        setValue("name", user.name);
-        setValue("email", user.email);
+        setValues((prev) => ({
+          ...prev,
+          phone: user.phone ?? "",
+          name: user.name ?? "",
+          email: user.email ?? "",
+        }));
       })
       .catch(console.error);
-  }, [setValue]);
+  }, []);
 
   useEffect(() => {
     if (!slug) return;
@@ -100,38 +121,42 @@ export default function EditEstatePage() {
         const estate = await getEstateBySlug(slug);
         setPostId(estate._id);
 
-        reset({
-          title: estate.title,
-          description: estate.description,
-          price: estate.price,
-          area: estate.area,
-          province: estate.province?._id ?? "",
-          district: estate.district?._id ?? "",
-          ward: estate.ward?._id ?? "",
-          addressDetail: estate.addressDetail ?? "",
-          frontage: estate.frontage ?? undefined,
-          entryWidth: estate.entryWidth ?? undefined,
-          direction: estate.direction ?? "",
-          floorNumber: estate.floorNumber ?? undefined,
-          lat: estate.lat ?? 0,
-          lng: estate.lng ?? 0,
-          numberOfBedrooms: estate.numberOfBedrooms ?? 0,
-          numberOfBathrooms: estate.numberOfBathrooms ?? 0,
-          propertyType: estate.propertyType as PropertyType,
-          legalStatus: estate.legalStatus ?? "",
-          isNegotiable: Boolean(estate.isNegotiable),
-          isPinned: Boolean(estate.isPinned),
-          pinLevel: estate.pinLevel ?? null,
-          pinExpiredAt: estate.pinExpiredAt ?? null,
-          images: [],
-          redBookImages: [],
-          phone: watch("phone") ?? "",
-          name: watch("name") ?? "",
-          email: watch("email") ?? "",
-        });
+        const normalizedPinLevel =
+          estate.pinLevel === 1 || estate.pinLevel === 2
+            ? estate.pinLevel
+            : null;
 
-        setSelectedProvince(estate.province?._id ?? "");
-        setSelectedDistrict(estate.district?._id ?? "");
+        setValues((prev) =>
+          createEstateFormDefaults({
+            title: estate.title ?? "",
+            description: estate.description ?? "",
+            price: estate.price ?? null,
+            area: estate.area ?? null,
+            province: estate.province?._id ?? "",
+            district: estate.district?._id ?? "",
+            ward: estate.ward?._id ?? "",
+            addressDetail: estate.addressDetail ?? "",
+            frontage: estate.frontage ?? null,
+            entryWidth: estate.entryWidth ?? null,
+            direction: estate.direction ?? "",
+            floorNumber: estate.floorNumber ?? null,
+            lat: estate.lat ?? 0,
+            lng: estate.lng ?? 0,
+            numberOfBedrooms: estate.numberOfBedrooms ?? null,
+            numberOfBathrooms: estate.numberOfBathrooms ?? null,
+            propertyType: estate.propertyType as PropertyType,
+            legalStatus: estate.legalStatus ?? "",
+            isNegotiable: Boolean(estate.isNegotiable),
+            isPinned: Boolean(estate.isPinned),
+            pinLevel: normalizedPinLevel,
+            pinExpiredAt: estate.pinExpiredAt ?? null,
+            images: [],
+            redBookImages: [],
+            phone: prev.phone,
+            name: prev.name,
+            email: prev.email,
+          }),
+        );
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load post");
       } finally {
@@ -140,15 +165,24 @@ export default function EditEstatePage() {
     };
 
     void loadPost();
-  }, [slug, reset, watch]);
+  }, [slug]);
 
-  const onSubmit = async (data: CreatePostInput) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (!postId) return;
+
+    const validationErrors = validateEstateForm(values, { isEdit: true });
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
-      await updatePost(postId, data);
-      router.push("/user/my-estates");
+      const payload = toCreatePostInput(values);
+      await updatePost(postId, payload);
+      router.push("/my-estates");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update post");
     } finally {
@@ -174,42 +208,48 @@ export default function EditEstatePage() {
             {error}
           </div>
         )}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <AddressSection
-            form={form}
+            values={values}
+            errors={errors}
             provinces={provinces}
             districts={districts}
             wards={wards}
-            onProvinceChange={(value) => {
-              setSelectedProvince(value);
-              setDistricts([]);
-              setWards([]);
-              setValue("district", "");
-              setValue("ward", "");
-            }}
-            onDistrictChange={(value) => {
-              setSelectedDistrict(value);
-              setWards([]);
-              setValue("ward", "");
-            }}
+            onFieldChange={onFieldChange}
+            onProvinceChange={handleProvinceChange}
+            onDistrictChange={handleDistrictChange}
           />
 
           <MainInfoSection
-            form={form}
+            values={values}
+            errors={errors}
+            onFieldChange={onFieldChange}
             propertyTypes={Object.values(PropertyType)}
           />
 
-          <LegalSection form={form} />
-
-          <ContactSection
-            name={watch("name")}
-            email={watch("email")}
-            phone={watch("phone")}
+          <LegalSection
+            values={values}
+            errors={errors}
+            onFieldChange={onFieldChange}
           />
 
-          <ContentSection form={form} />
+          <ContactSection
+            name={values.name}
+            email={values.email}
+            phone={values.phone}
+          />
 
-          <PinSection form={form} />
+          <ContentSection
+            values={values}
+            errors={errors}
+            onFieldChange={onFieldChange}
+          />
+
+          <PinSection
+            values={values}
+            errors={errors}
+            onFieldChange={onFieldChange}
+          />
 
           <div className="flex justify-end gap-4">
             <Button

@@ -1,8 +1,8 @@
-import { CreatePostInput } from "./estate.validation";
 import axiosClient from "@/lib/axios";
 import { AxiosError } from "axios";
 import type {
   AuthorObject,
+  CreatePostInput,
   Estate,
   EstateStatus,
   GetPostsParams,
@@ -182,10 +182,6 @@ export const createPostsApi = (body: CreatePostInput) => {
 
   images?.forEach((file) => formData.append("images", file));
   redBookImages?.forEach((file) => formData.append("redBookImages", file));
-
-  for (const [key, value] of formData.entries()) {
-    console.log(key, value);
-  }
 
   return axiosClient.post("/posts", formData, {
     headers: { "Content-Type": "multipart/form-data" },

@@ -1,4 +1,3 @@
-import { Controller, UseFormReturn, useWatch } from "react-hook-form";
 import {
   Select,
   SelectContent,
@@ -7,51 +6,55 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { CreatePostInput } from "@/features/estate/estate.validation";
+import {
+  parseNumberInput,
+  type EstateFormErrors,
+  type EstateFormState,
+  type FieldChangeHandler,
+} from "@/features/estate/estate.form";
 import {
   PropertyType,
   PropertyTypeLabel,
 } from "@/features/estate/estate.types";
 
 type Props = {
-  form: UseFormReturn<CreatePostInput>;
+  values: EstateFormState;
+  errors: EstateFormErrors;
+  onFieldChange: FieldChangeHandler;
   propertyTypes: PropertyType[];
 };
 
-export default function MainInfoSection({ form, propertyTypes }: Props) {
-  const {
-    control,
-    register,
-    formState: { errors },
-  } = form;
-
-  const propertyType = useWatch({ control, name: "propertyType" });
-  const isLocked = !propertyType;
+export default function MainInfoSection({
+  values,
+  errors,
+  onFieldChange,
+  propertyTypes,
+}: Props) {
+  const isLocked = !values.propertyType;
 
   return (
     <section className="bg-white p-6 rounded-xl shadow space-y-4">
       <h2 className="text-lg font-semibold">Thông tin chính</h2>
 
-      <Controller
-        name="propertyType"
-        control={control}
-        render={({ field }) => (
-          <Select value={field.value} onValueChange={field.onChange}>
-            <SelectTrigger className="w-full" aria-required="true">
-              <SelectValue placeholder="Loại hình bất động sản" />
-            </SelectTrigger>
-            <SelectContent>
-              {propertyTypes.map((p) => (
-                <SelectItem key={p} value={p}>
-                  {PropertyTypeLabel[p]}{" "}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-      />
+      <Select
+        value={values.propertyType}
+        onValueChange={(value) =>
+          onFieldChange("propertyType", value as PropertyType)
+        }
+      >
+        <SelectTrigger className="w-full" aria-required="true">
+          <SelectValue placeholder="Loại hình bất động sản" />
+        </SelectTrigger>
+        <SelectContent>
+          {propertyTypes.map((p) => (
+            <SelectItem key={p} value={p}>
+              {PropertyTypeLabel[p]}{" "}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       {errors.propertyType && (
-        <p className="text-red-500 text-sm">{errors.propertyType.message}</p>
+        <p className="text-red-500 text-sm">{errors.propertyType}</p>
       )}
 
       <div className={isLocked ? "space-y-4 opacity-60" : "space-y-4"}>
@@ -62,12 +65,15 @@ export default function MainInfoSection({ form, propertyTypes }: Props) {
           <Input
             type="number"
             placeholder="m²"
-            {...register("area")}
+            value={values.area ?? ""}
+            onChange={(event) =>
+              onFieldChange("area", parseNumberInput(event.target.value))
+            }
             required
             disabled={isLocked}
           />
           {errors.area && (
-            <p className="text-red-500 text-sm">{errors.area.message}</p>
+            <p className="text-red-500 text-sm">{errors.area}</p>
           )}
         </div>
 
@@ -78,12 +84,15 @@ export default function MainInfoSection({ form, propertyTypes }: Props) {
           <Input
             type="number"
             placeholder="VNĐ / m²"
-            {...register("price")}
+            value={values.price ?? ""}
+            onChange={(event) =>
+              onFieldChange("price", parseNumberInput(event.target.value))
+            }
             required
             disabled={isLocked}
           />
           {errors.price && (
-            <p className="text-red-500 text-sm">{errors.price.message}</p>
+            <p className="text-red-500 text-sm">{errors.price}</p>
           )}
         </div>
 
@@ -99,13 +108,19 @@ export default function MainInfoSection({ form, propertyTypes }: Props) {
               <Input
                 type="number"
                 placeholder="Số phòng ngủ"
-                {...register("numberOfBedrooms")}
+                value={values.numberOfBedrooms ?? ""}
+                onChange={(event) =>
+                  onFieldChange(
+                    "numberOfBedrooms",
+                    parseNumberInput(event.target.value),
+                  )
+                }
                 required
                 disabled={isLocked}
               />
               {errors.numberOfBedrooms && (
                 <p className="text-red-500 text-sm">
-                  {errors.numberOfBedrooms.message}
+                  {errors.numberOfBedrooms}
                 </p>
               )}
             </div>
@@ -116,13 +131,19 @@ export default function MainInfoSection({ form, propertyTypes }: Props) {
               <Input
                 type="number"
                 placeholder="Số phòng tắm"
-                {...register("numberOfBathrooms")}
+                value={values.numberOfBathrooms ?? ""}
+                onChange={(event) =>
+                  onFieldChange(
+                    "numberOfBathrooms",
+                    parseNumberInput(event.target.value),
+                  )
+                }
                 required
                 disabled={isLocked}
               />
               {errors.numberOfBathrooms && (
                 <p className="text-red-500 text-sm">
-                  {errors.numberOfBathrooms.message}
+                  {errors.numberOfBathrooms}
                 </p>
               )}
             </div>
@@ -133,13 +154,14 @@ export default function MainInfoSection({ form, propertyTypes }: Props) {
               <Input
                 type="number"
                 placeholder="m²"
-                {...register("frontage")}
+                value={values.frontage ?? ""}
+                onChange={(event) =>
+                  onFieldChange("frontage", parseNumberInput(event.target.value))
+                }
                 disabled={isLocked}
               />
               {errors.frontage && (
-                <p className="text-red-500 text-sm">
-                  {errors.frontage.message}
-                </p>
+                <p className="text-red-500 text-sm">{errors.frontage}</p>
               )}
             </div>
             <div className="space-y-1">
@@ -149,13 +171,17 @@ export default function MainInfoSection({ form, propertyTypes }: Props) {
               <Input
                 type="number"
                 placeholder="m²"
-                {...register("entryWidth")}
+                value={values.entryWidth ?? ""}
+                onChange={(event) =>
+                  onFieldChange(
+                    "entryWidth",
+                    parseNumberInput(event.target.value),
+                  )
+                }
                 disabled={isLocked}
               />
               {errors.entryWidth && (
-                <p className="text-red-500 text-sm">
-                  {errors.entryWidth.message}
-                </p>
+                <p className="text-red-500 text-sm">{errors.entryWidth}</p>
               )}
             </div>
             <div className="space-y-1">
@@ -164,13 +190,14 @@ export default function MainInfoSection({ form, propertyTypes }: Props) {
               </label>
               <Input
                 placeholder="Hướng nhà"
-                {...register("direction")}
+                value={values.direction}
+                onChange={(event) =>
+                  onFieldChange("direction", event.target.value)
+                }
                 disabled={isLocked}
               />
               {errors.direction && (
-                <p className="text-red-500 text-sm">
-                  {errors.direction.message}
-                </p>
+                <p className="text-red-500 text-sm">{errors.direction}</p>
               )}
             </div>
             <div className="space-y-1">
@@ -180,13 +207,17 @@ export default function MainInfoSection({ form, propertyTypes }: Props) {
               <Input
                 type="number"
                 placeholder="0"
-                {...register("floorNumber")}
+                value={values.floorNumber ?? ""}
+                onChange={(event) =>
+                  onFieldChange(
+                    "floorNumber",
+                    parseNumberInput(event.target.value),
+                  )
+                }
                 disabled={isLocked}
               />
               {errors.floorNumber && (
-                <p className="text-red-500 text-sm">
-                  {errors.floorNumber.message}
-                </p>
+                <p className="text-red-500 text-sm">{errors.floorNumber}</p>
               )}
             </div>
           </div>

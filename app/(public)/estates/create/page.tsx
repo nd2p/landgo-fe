@@ -1,15 +1,18 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Resolver, useForm } from "react-hook-form";
-import { yupResolver } from "@hookform/resolvers/yup";
-import { createPostsServices } from "@/features/estate/estate.service";
-import { PropertyType } from "@/features/estate/estate.types";
+import { createPostsApi } from "@/features/estate/estate.api";
 import {
-  CreatePostInput,
-  createPostSchema,
-} from "@/features/estate/estate.validation";
+  createEstateFormDefaults,
+  type EstateFormErrors,
+  type EstateFormState,
+  type FieldChangeHandler,
+  toCreatePostInput,
+  validateEstateForm,
+} from "@/features/estate/estate.form";
+import { PropertyType } from "@/features/estate/estate.types";
 import {
   getDistrictsService,
   getProvinceService,
@@ -29,107 +32,142 @@ export default function CreatePostPage() {
   const [provinces, setProvinces] = useState<IProvince[]>([]);
   const [districts, setDistricts] = useState<IDistrict[]>([]);
   const [wards, setWards] = useState<IWard[]>([]);
-  const [selectedProvince, setSelectedProvince] = useState("");
-  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [values, setValues] = useState<EstateFormState>(() =>
+    createEstateFormDefaults(),
+  );
+  const [errors, setErrors] = useState<EstateFormErrors>({});
 
-  const form = useForm<CreatePostInput>({
-    resolver: yupResolver(createPostSchema) as Resolver<CreatePostInput>,
-    defaultValues: {
-      phone: "",
-      name: "",
-      email: "",
-      lat: 0,
-      lng: 0,
-      numberOfBedrooms: 0,
-      numberOfBathrooms: 0,
-      isNegotiable: false,
-      isPinned: false,
-      pinLevel: null,
-      pinExpiredAt: null,
-      images: [],
-      redBookImages: [],
-    },
-  });
+  const clearFieldError = (field: keyof EstateFormErrors) => {
+    setErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
 
-  const { handleSubmit, setValue, watch } = form;
+  const onFieldChange: FieldChangeHandler = (field, value) => {
+    setValues((prev) => ({ ...prev, [field]: value }));
+    clearFieldError(field);
+  };
+
+  const handleProvinceChange = (value: string) => {
+    setValues((prev) => ({
+      ...prev,
+      province: value,
+      district: "",
+      ward: "",
+    }));
+    setDistricts([]);
+    setWards([]);
+    clearFieldError("province");
+    clearFieldError("district");
+    clearFieldError("ward");
+  };
+
+  const handleDistrictChange = (value: string) => {
+    setValues((prev) => ({
+      ...prev,
+      district: value,
+      ward: "",
+    }));
+    setWards([]);
+    clearFieldError("district");
+    clearFieldError("ward");
+  };
 
   useEffect(() => {
     getProvinceService().then(setProvinces).catch(console.error);
   }, []);
 
   useEffect(() => {
-    if (!selectedProvince) return;
-    getDistrictsService(selectedProvince)
-      .then(setDistricts)
-      .catch(console.error);
-  }, [selectedProvince]);
+    if (!values.province) return;
+    getDistrictsService(values.province).then(setDistricts).catch(console.error);
+  }, [values.province]);
 
   useEffect(() => {
-    if (!selectedDistrict) return;
-    getWardsService(selectedDistrict).then(setWards).catch(console.error);
-  }, [selectedDistrict]);
+    if (!values.district) return;
+    getWardsService(values.district).then(setWards).catch(console.error);
+  }, [values.district]);
 
   useEffect(() => {
     getMeService()
       .then((user) => {
-        setValue("phone", user.phone);
-        setValue("name", user.name);
-        setValue("email", user.email);
+        setValues((prev) => ({
+          ...prev,
+          phone: user.phone ?? "",
+          name: user.name ?? "",
+          email: user.email ?? "",
+        }));
       })
       .catch(console.error);
-  }, [setValue]);
+  }, []);
 
-  const onSubmit = async (data: CreatePostInput) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const validationErrors = validateEstateForm(values);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
     try {
-      const response = await createPostsServices(data);
-      console.log("Post created:", response);
+      const payload = toCreatePostInput(values);
+      const response = await createPostsApi(payload);
+      console.log("Post created:", response.data);
       router.push("/my-estates");
     } catch (error) {
       console.error("Create post error:", error);
-      console.log("images:", data.images);
-      console.log("redBookImages:", data.redBookImages);
+      console.log("images:", values.images);
+      console.log("redBookImages:", values.redBookImages);
     }
   };
 
   return (
     <div className="flex justify-center bg-background py-10">
       <main className="w-full max-w-3xl space-y-6">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <AddressSection
-            form={form}
+            values={values}
+            errors={errors}
             provinces={provinces}
             districts={districts}
             wards={wards}
-            onProvinceChange={(value) => {
-              setSelectedProvince(value);
-              setDistricts([]);
-              setWards([]);
-              setValue("district", "");
-              setValue("ward", "");
-            }}
-            onDistrictChange={(value) => {
-              setSelectedDistrict(value);
-              setWards([]);
-              setValue("ward", "");
-            }}
+            onFieldChange={onFieldChange}
+            onProvinceChange={handleProvinceChange}
+            onDistrictChange={handleDistrictChange}
           />
 
           <MainInfoSection
-            form={form}
+            values={values}
+            errors={errors}
+            onFieldChange={onFieldChange}
             propertyTypes={Object.values(PropertyType)}
           />
 
-          <LegalSection form={form} />
-
-          <ContactSection
-            name={watch("name")}
-            email={watch("email")}
-            phone={watch("phone")}
+          <LegalSection
+            values={values}
+            errors={errors}
+            onFieldChange={onFieldChange}
           />
 
-          <ContentSection form={form} />
+          <ContactSection
+            name={values.name}
+            email={values.email}
+            phone={values.phone}
+          />
 
-          <PinSection form={form} />
+          <ContentSection
+            values={values}
+            errors={errors}
+            onFieldChange={onFieldChange}
+          />
+
+          <PinSection
+            values={values}
+            errors={errors}
+            onFieldChange={onFieldChange}
+          />
 
           <div className="flex justify-end gap-4">
             <Button variant="outline" type="button" onClick={() => router.back()}>
