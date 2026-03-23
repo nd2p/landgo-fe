@@ -1,36 +1,63 @@
-import { Controller, UseFormReturn } from "react-hook-form";
 import { Input } from "@/components/ui/input";
-import { CreatePostInput } from "@/features/estate/estate.validation";
+import type {
+  EstateFormErrors,
+  EstateFormState,
+  FieldChangeHandler,
+} from "@/features/estate/estate.form";
 import ImageUploader from "./image-uploader";
 
 type Props = {
-  form: UseFormReturn<CreatePostInput>;
+  values: EstateFormState;
+  errors: EstateFormErrors;
+  onFieldChange: FieldChangeHandler;
 };
 
-export default function LegalSection({ form }: Props) {
-  const { control, register, formState: { errors } } = form;
-
+export default function LegalSection({ values, errors, onFieldChange }: Props) {
   return (
     <section className="bg-white p-6 rounded-xl shadow space-y-4">
       <h2 className="text-lg font-semibold">Thông tin pháp lý</h2>
 
-      <Input {...register("legalStatus")} placeholder="Tình trạng pháp lý" />
-      {errors.legalStatus && <p className="text-red-500 text-sm">{errors.legalStatus.message}</p>}
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-slate-700">
+          Trạng thái pháp lý
+        </label>
+        <Input
+          value={values.legalStatus}
+          onChange={(event) =>
+            onFieldChange("legalStatus", event.target.value)
+          }
+          placeholder="Trạng thái pháp lý"
+          required
+        />
+      </div>
+      {errors.legalStatus && (
+        <p className="text-red-500 text-sm">{errors.legalStatus}</p>
+      )}
+
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-slate-700">Giá cả</label>
+        <select
+          className="border-input w-full rounded-md border px-3 py-2 text-sm"
+          value={values.isNegotiable ? "true" : "false"}
+          onChange={(event) =>
+            onFieldChange("isNegotiable", event.target.value === "true")
+          }
+          required
+        >
+          <option value="true">Có thể thương lượng</option>
+          <option value="false">Giá cả cố định</option>
+        </select>
+      </div>
 
       <div>
         <p className="mb-2 text-sm text-muted-foreground">Ảnh sổ đỏ</p>
-        <Controller
-          name="redBookImages"
-          control={control}
-          render={({ field }) => (
-            <ImageUploader
-              images={(field.value as File[]) ?? []}
-              setImages={field.onChange}
-            />
-          )}
+        <ImageUploader
+          images={values.redBookImages}
+          setImages={(files) => onFieldChange("redBookImages", files)}
+          max={5}
         />
         {errors.redBookImages && (
-          <p className="text-red-500 text-sm">{errors.redBookImages.message}</p>
+          <p className="text-red-500 text-sm">{errors.redBookImages}</p>
         )}
       </div>
     </section>

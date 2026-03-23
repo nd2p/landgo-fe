@@ -13,6 +13,36 @@ export const PropertyTypeLabel: Record<PropertyType, string> = {
   [PropertyType.Villa]: "Biệt thự",
 };
 
+export type CreatePostInput = {
+  title: string;
+  description: string;
+  price: number;
+  area: number;
+  province: string;
+  district: string;
+  ward: string;
+  addressDetail?: string;
+  lat: number;
+  lng: number;
+  frontage?: number;
+  entryWidth?: number;
+  direction?: string;
+  floorNumber?: number;
+  numberOfBedrooms: number;
+  numberOfBathrooms: number;
+  propertyType: PropertyType;
+  legalStatus: string;
+  isNegotiable: boolean;
+  images?: File[];
+  redBookImages: File[];
+  isPinned: boolean;
+  pinLevel: 1 | 2 | null;
+  pinExpiredAt: string | null;
+  phone?: string;
+  name?: string;
+  email?: string;
+};
+
 export type EstateStatus = "Pending" | "Approved" | "Rejected";
 
 export type Estate = {
@@ -58,9 +88,9 @@ export type Estate = {
   score: number;
   commentCount: number;
   viewCount: number;
-  isPinned: boolean;
-  pinLevel: number | null;
-  pinExpiredAt: string | null;
+  isPinned?: boolean;
+  pinLevel?: number | null;
+  pinExpiredAt?: string | null;
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -88,6 +118,12 @@ export type GetPostsParams = {
   district?: string;
   ward?: string;
   addressDetail?: string;
+};
+
+export type GetMyPostsParams = {
+  status?: string;
+  page?: number;
+  limit?: number;
 };
 
 export type LocationObject = {

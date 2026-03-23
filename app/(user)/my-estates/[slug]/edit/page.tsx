@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+
 import { Button } from "@/components/ui/button";
-import { createPostsApi } from "@/features/estate/estate.api";
 import {
   createEstateFormDefaults,
   type EstateFormErrors,
@@ -20,15 +20,21 @@ import {
 } from "@/features/location/location.service";
 import { IDistrict, IProvince, IWard } from "@/features/location/location.type";
 import { getMeService } from "@/features/auth/auth.service";
-import AddressSection from "./components/address-section";
-import MainInfoSection from "./components/main-info-section";
-import LegalSection from "./components/legal-section";
-import ContentSection from "./components/content-section";
-import ContactSection from "./components/contact-section";
-import PinSection from "./components/pin-section";
+import { getEstateBySlug, updatePost } from "@/features/estate/estate.api";
 
-export default function CreatePostPage() {
+import AddressSection from "@/app/(public)/estates/create/components/address-section";
+import MainInfoSection from "@/app/(public)/estates/create/components/main-info-section";
+import LegalSection from "@/app/(public)/estates/create/components/legal-section";
+import ContentSection from "@/app/(public)/estates/create/components/content-section";
+import ContactSection from "@/app/(public)/estates/create/components/contact-section";
+import PinSection from "@/app/(public)/estates/create/components/pin-section";
+
+export default function EditEstatePage() {
   const router = useRouter();
+  const params = useParams<{ slug: string }>();
+  const slug = params?.slug;
+
+  const [postId, setPostId] = useState<string | null>(null);
   const [provinces, setProvinces] = useState<IProvince[]>([]);
   const [districts, setDistricts] = useState<IDistrict[]>([]);
   const [wards, setWards] = useState<IWard[]>([]);
@@ -36,6 +42,8 @@ export default function CreatePostPage() {
     createEstateFormDefaults(),
   );
   const [errors, setErrors] = useState<EstateFormErrors>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const clearFieldError = (field: keyof EstateFormErrors) => {
     setErrors((prev) => {
@@ -103,29 +111,103 @@ export default function CreatePostPage() {
       .catch(console.error);
   }, []);
 
+  useEffect(() => {
+    if (!slug) return;
+
+    const loadPost = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const estate = await getEstateBySlug(slug);
+        setPostId(estate._id);
+
+        const normalizedPinLevel =
+          estate.pinLevel === 1 || estate.pinLevel === 2
+            ? estate.pinLevel
+            : null;
+
+        setValues((prev) =>
+          createEstateFormDefaults({
+            title: estate.title ?? "",
+            description: estate.description ?? "",
+            price: estate.price ?? null,
+            area: estate.area ?? null,
+            province: estate.province?._id ?? "",
+            district: estate.district?._id ?? "",
+            ward: estate.ward?._id ?? "",
+            addressDetail: estate.addressDetail ?? "",
+            frontage: estate.frontage ?? null,
+            entryWidth: estate.entryWidth ?? null,
+            direction: estate.direction ?? "",
+            floorNumber: estate.floorNumber ?? null,
+            lat: estate.lat ?? 0,
+            lng: estate.lng ?? 0,
+            numberOfBedrooms: estate.numberOfBedrooms ?? null,
+            numberOfBathrooms: estate.numberOfBathrooms ?? null,
+            propertyType: estate.propertyType as PropertyType,
+            legalStatus: estate.legalStatus ?? "",
+            isNegotiable: Boolean(estate.isNegotiable),
+            isPinned: Boolean(estate.isPinned),
+            pinLevel: normalizedPinLevel,
+            pinExpiredAt: estate.pinExpiredAt ?? null,
+            images: [],
+            redBookImages: [],
+            phone: prev.phone,
+            name: prev.name,
+            email: prev.email,
+          }),
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load post");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void loadPost();
+  }, [slug]);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const validationErrors = validateEstateForm(values);
+    if (!postId) return;
+
+    const validationErrors = validateEstateForm(values, { isEdit: true });
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
 
     try {
+      setIsLoading(true);
+      setError(null);
       const payload = toCreatePostInput(values);
-      const response = await createPostsApi(payload);
-      console.log("Post created:", response.data);
+      await updatePost(postId, payload);
       router.push("/my-estates");
-    } catch (error) {
-      console.error("Create post error:", error);
-      console.log("images:", values.images);
-      console.log("redBookImages:", values.redBookImages);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update post");
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center bg-background py-10">
+        <main className="w-full max-w-3xl">
+          <p className="text-sm text-muted-foreground">Đang tải dữ liệu...</p>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center bg-background py-10">
       <main className="w-full max-w-3xl space-y-6">
+        {error && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-6">
           <AddressSection
             values={values}
@@ -170,10 +252,14 @@ export default function CreatePostPage() {
           />
 
           <div className="flex justify-end gap-4">
-            <Button variant="outline" type="button" onClick={() => router.back()}>
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => router.back()}
+            >
               Hủy
             </Button>
-            <Button type="submit">Đăng tin</Button>
+            <Button type="submit">Lưu thay đổi</Button>
           </div>
         </form>
       </main>

@@ -1,34 +1,14 @@
-import { CreatePostInput } from "./estate.validation";
 import axiosClient from "@/lib/axios";
 import { AxiosError } from "axios";
 import type {
   AuthorObject,
+  CreatePostInput,
   Estate,
   EstateStatus,
   GetPostsParams,
   GetPostsResponse,
+  GetMyPostsParams,
 } from "./estate.types";
-
-export const createPostsApi = (body: CreatePostInput) => {
-  const formData = new FormData();
-
-  const { images, redBookImages, ...textFields } = body;
-
-  Object.entries(textFields).forEach(([key, value]) => {
-    if (value !== undefined) formData.append(key, String(value));
-  });
-
-  images?.forEach((file) => formData.append("images", file));
-  redBookImages?.forEach((file) => formData.append("redBookImages", file));
-
-  for (const [key, value] of formData.entries()) {
-    console.log(key, value);
-  }
-
-  return axiosClient.post("/posts", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-};
 
 function mapAuthor(author?: AuthorObject): AuthorObject | undefined {
   if (!author?._id) {
@@ -164,10 +144,16 @@ export const getPosts = async (
 
 export const getEstateBySlug = async (slug: string): Promise<Estate> => {
   try {
-    const response = await axiosClient.get<{ success: boolean; data: Estate; message?: string }>(`/posts/${slug}`);
+    const response = await axiosClient.get<{
+      success: boolean;
+      data: Estate;
+      message?: string;
+    }>(`/posts/${slug}`);
 
     if (!response.data?.success) {
-      throw new Error(response.data?.message || "Failed to fetch estate detail");
+      throw new Error(
+        response.data?.message || "Failed to fetch estate detail",
+      );
     }
 
     return mapPostToEstate(response.data.data);
@@ -175,5 +161,113 @@ export const getEstateBySlug = async (slug: string): Promise<Estate> => {
     const axiosError = error as AxiosError<{ message?: string }>;
     const backendMessage = axiosError.response?.data?.message;
     throw new Error(backendMessage || "Failed to fetch estate detail");
+  }
+};
+
+export const createPostsApi = (body: CreatePostInput) => {
+  const formData = new FormData();
+
+  const { images, redBookImages, ...textFields } = body;
+
+  Object.entries(textFields).forEach(([key, value]) => {
+    if ( value === undefined ||value === null || value === "" || value === "null" ) {
+      return;
+    }
+
+    if (key === "pinLevel" && value === 0) {
+      return;
+    }
+    formData.append(key, String(value));
+  });
+
+  images?.forEach((file) => formData.append("images", file));
+  redBookImages?.forEach((file) => formData.append("redBookImages", file));
+
+  return axiosClient.post("/posts", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+
+export const getMyPosts = async (
+  filters: GetMyPostsParams = {},
+): Promise<{ data: Estate[]; pagination: GetPostsResponse["pagination"] }> => {
+  try {
+    const searchParams = new URLSearchParams();
+
+    if (filters.status) {
+      searchParams.set("status", filters.status);
+    }
+
+    if (typeof filters.page === "number") {
+      searchParams.set("page", filters.page.toString());
+    }
+
+    if (typeof filters.limit === "number") {
+      searchParams.set("limit", filters.limit.toString());
+    }
+
+    const response = await axiosClient.get<GetPostsResponse>(
+      searchParams.toString() ? `/posts/my?${searchParams.toString()}` : "/posts/my",
+    );
+
+    if (!response.data?.success) {
+      throw new Error(
+        response.data?.message || "Failed to fetch user posts from the server",
+      );
+    }
+
+    return {
+      data: (response.data.data ?? []).map(mapPostToEstate),
+      pagination: response.data.pagination,
+    };
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    const backendMessage = axiosError.response?.data?.message;
+    throw new Error(
+      backendMessage || "Failed to fetch user posts from the server",
+    );
+  }
+};
+
+export const updatePost = async (
+  postId: string,
+  body: Partial<CreatePostInput>,
+): Promise<Estate> => {
+  const { images, redBookImages, pinExpiredAt, pinLevel, isPinned, ...rest } =
+    body;
+
+  try {
+    const response = await axiosClient.patch<{
+      success: boolean;
+      data: Estate;
+      message?: string;
+    }>(`/posts/${postId}`, rest);
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to update post");
+    }
+
+    return mapPostToEstate(response.data.data);
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    const backendMessage = axiosError.response?.data?.message;
+    throw new Error(backendMessage || "Failed to update post");
+  }
+};
+
+export const deletePost = async (postId: string): Promise<void> => {
+  try {
+    const response = await axiosClient.delete<{
+      success: boolean;
+      message?: string;
+    }>(`/posts/${postId}`);
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to delete post");
+    }
+  } catch (error) {
+    const axiosError = error as AxiosError<{ message?: string }>;
+    const backendMessage = axiosError.response?.data?.message;
+    throw new Error(backendMessage || "Failed to delete post");
   }
 };

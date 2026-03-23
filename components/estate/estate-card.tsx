@@ -65,7 +65,7 @@ export default function EstateCard({ estate, viewMode = 'list' }: EstateCardProp
                 }`}
         >
             <div className={`grid gap-0 ${isGrid ? 'grid-cols-1' : 'h-full md:grid-cols-[300px_1fr]'}`}>
-                <Link href={`/estates/${estate._id}`} className="relative block h-full overflow-hidden bg-muted">
+                <Link href={`/estates/${estate.slug}`} className="relative block h-full overflow-hidden bg-muted">
                     <Image
                         src={coverImage}
                         alt={estate.title}
