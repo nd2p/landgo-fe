@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BadgeDollarSign,
+  Building2,
   ChevronRight,
   CircleUserRound,
   Crown,
@@ -25,6 +26,7 @@ import { MeSchemaFormValues } from "@/features/auth/auth.validation";
 import { getMeApi } from "@/features/auth/auth.api";
 
 const MENU_ITEMS = [
+  { label: "Mua bán", icon: Building2, to: "/estates" },
   { label: "Bản đồ quy hoạch", icon: MapPinned, to: "/maps/urban-planning" },
   {
     label: "Kho bản đồ quy hoạch",
@@ -34,11 +36,8 @@ const MENU_ITEMS = [
 ];
 
 const USER_MENU_ITEMS = [
-  { label: "Thông tin cá nhân", to: "/profile" },
-  { label: "Tin đã đăng", to: "/my-estates" },
-  { label: "Tin đã thích", to: "/saved-estates" },
-  { label: "CRM quản lý khách", to: "/crm/customers" },
-  { label: "CRM quản lý nguồn hàng", to: "/crm/suppliers" },
+  { label: "CRM quản lý ", to: "/crm/customers" },
+
 ];
 
 export const MENU_TOGGLE_EVENT = "landgo:toggle-menu";
@@ -111,7 +110,6 @@ export default function Menubar() {
       setIsLoggingOut(true);
       await logoutUser();
     } catch {
-      // ignore logout api error
     } finally {
       setOpen(false);
       setIsLoggingOut(false);
@@ -142,7 +140,6 @@ export default function Menubar() {
           />
         </div>
 
-        {/* Auth Links - Only show if not logged in */}
         {!isLoggedIn && (
           <div className="grid grid-cols-2 gap-2 p-4 border-b">
             <Link
@@ -164,7 +161,6 @@ export default function Menubar() {
           </div>
         )}
 
-        {/* Main Menu */}
         <nav className="flex-1 px-2 py-4 border-b">
           {MENU_ITEMS.map((item) => {
             const Icon = item.icon;
@@ -189,7 +185,6 @@ export default function Menubar() {
           })}
         </nav>
 
-        {/* User Section - Only show if logged in */}
         {isLoggedIn && (
           <div className="p-4 border-b">
             <div className="mb-3 flex items-center gap-3 rounded-lg bg-slate-50 p-3">
@@ -204,7 +199,7 @@ export default function Menubar() {
                 </p>
               </div>
             </div>
-
+{/* 
             <button className="w-full flex items-center gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm font-medium text-amber-600 hover:bg-amber-100 mb-3">
               <Crown className="size-4" />
               Nâng cấp Pro
@@ -220,7 +215,7 @@ export default function Menubar() {
                   <span>{item.label}</span>
                 </button>
               ))}
-            </div>
+            </div> */}
 
             <button
               type="button"

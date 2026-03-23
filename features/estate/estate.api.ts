@@ -159,6 +159,29 @@ export const getPosts = async (
   });
 };
 
+export const getPinnedPosts = async (): Promise<Estate[]> => {
+  return estateRequestCache.run("getPinnedPosts", async () => {
+    try {
+      const response = await axiosClient.get<{
+        success: boolean;
+        data: Estate[];
+      }>("/posts/pinned");
+
+      if (!response.data?.success) {
+        throw new Error("Failed to fetch pinned posts from the server");
+      }
+
+      return (response.data.data ?? []).map(mapPostToEstate);
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      const backendMessage = axiosError.response?.data?.message;
+      throw new Error(
+        backendMessage || "Failed to fetch pinned posts from the server",
+      );
+    }
+  });
+};
+
 export const getEstateBySlug = async (slug: string): Promise<Estate> => {
   try {
     const response = await axiosClient.get<{
