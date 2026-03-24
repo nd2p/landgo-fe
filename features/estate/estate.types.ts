@@ -34,7 +34,6 @@ export type CreatePostInput = {
   numberOfBedrooms: number;
   numberOfBathrooms: number;
   propertyType: PropertyType;
-  legalStatus: string;
   isNegotiable: boolean;
   images?: File[];
   redBookImages: File[];

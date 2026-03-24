@@ -12,6 +12,7 @@ import {
   toCreatePostInput,
   validateEstateForm,
 } from "@/features/estate/estate.form";
+import { validateRedBookImagesWithGemini } from "@/features/estate/red-book-validation.service";
 import { PropertyType } from "@/features/estate/estate.types";
 import {
   getDistrictsService,
@@ -37,6 +38,8 @@ export default function CreatePostPage() {
     createEstateFormDefaults(),
   );
   const [errors, setErrors] = useState<EstateFormErrors>({});
+  const [isValidatingRedBookImages, setIsValidatingRedBookImages] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const clearFieldError = (field: keyof EstateFormErrors) => {
     setErrors((prev) => {
@@ -106,23 +109,36 @@ export default function CreatePostPage() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isSubmitting) return;
+
     const validationErrors = validateEstateForm(values);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
+      if (values.redBookImages.length > 0) {
+        setIsValidatingRedBookImages(true);
+        const validationResult = await validateRedBookImagesWithGemini(values.redBookImages);
+
+        if (!validationResult.valid) {
+          const invalidNames = validationResult.invalidFiles.map((file) => file.fileName).join(", ");
+          setErrors((prev) => ({
+            ...prev,
+            redBookImages: `Ảnh sổ đỏ không hợp lệ: ${invalidNames}`,
+          }));
+          return;
+        }
+      }
+
       const payload = toCreatePostInput(values);
       const response = await createPostsApi(payload);
       const createdPostId = response.data?.data?._id;
 
       if (values.isPinned && values.pinLevel && values.pinDurationType && createdPostId) {
-        console.log("Creating payment for pinned post:", {
-          postId: createdPostId,
-          pinLevel: values.pinLevel,
-          pinDurationType: values.pinDurationType,
-        });
         try {
           const payment = await createSepayPayment({
             postId: createdPostId,
@@ -141,6 +157,33 @@ export default function CreatePostPage() {
       console.error("Create post error:", error);
       console.log("images:", values.images);
       console.log("redBookImages:", values.redBookImages);
+    } finally {
+      setIsSubmitting(false);
+      setIsValidatingRedBookImages(false);
+    }
+  };
+
+  const handleRedBookFilesSelected = async (files: File[]) => {
+    try {
+      setIsValidatingRedBookImages(true);
+      const validationResult = await validateRedBookImagesWithGemini(files);
+
+      if (!validationResult.valid) {
+        const invalidNames = validationResult.invalidFiles.map((file) => file.fileName).join(", ");
+        const message = `Ảnh sổ đỏ không hợp lệ: ${invalidNames}`;
+        setErrors((prev) => ({ ...prev, redBookImages: message }));
+        return message;
+      }
+
+      clearFieldError("redBookImages");
+      return null;
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Không thể xác thực ảnh sổ đỏ. Vui lòng thử lại.";
+      setErrors((prev) => ({ ...prev, redBookImages: message }));
+      return message;
+    } finally {
+      setIsValidatingRedBookImages(false);
     }
   };
 
@@ -170,6 +213,8 @@ export default function CreatePostPage() {
             values={values}
             errors={errors}
             onFieldChange={onFieldChange}
+            onRedBookFilesSelected={handleRedBookFilesSelected}
+            isValidatingRedBookImages={isValidatingRedBookImages}
           />
 
           <ContactSection
@@ -191,10 +236,17 @@ export default function CreatePostPage() {
           />
 
           <div className="flex justify-end gap-4">
-            <Button variant="outline" type="button" onClick={() => router.back()}>
-              Hủy
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => router.back()}
+              disabled={isSubmitting}
+            >
+              Huy
             </Button>
-            <Button type="submit">Đăng tin</Button>
+            <Button type="submit" disabled={isSubmitting || isValidatingRedBookImages}>
+              {isSubmitting ? "Đang xử lý..." : "Đăng tin"}
+            </Button>
           </div>
         </form>
       </main>

@@ -15,10 +15,9 @@ export type EstateFormState = {
   entryWidth: number | null;
   direction: string;
   floorNumber: number | null;
-  numberOfBedrooms: number | null;
-  numberOfBathrooms: number | null;
+  numberOfBedrooms: number | 0;
+  numberOfBathrooms: number | 0;
   propertyType: PropertyType | "";
-  legalStatus: string;
   isNegotiable: boolean;
   images: File[];
   redBookImages: File[];
@@ -57,10 +56,9 @@ export const createEstateFormDefaults = (
   entryWidth: null,
   direction: "",
   floorNumber: null,
-  numberOfBedrooms: null,
-  numberOfBathrooms: null,
+  numberOfBedrooms: 0,
+  numberOfBathrooms: 0,
   propertyType: "",
-  legalStatus: "",
   isNegotiable: false,
   images: [],
   redBookImages: [],
@@ -119,10 +117,6 @@ export const validateEstateForm = (
     errors.numberOfBathrooms = "Số phòng tắm không hợp lệ";
   }
 
-  if (!state.legalStatus.trim()) {
-    errors.legalStatus = "Vui lòng nhập tình trạng pháp lý";
-  }
-
   if (!state.title.trim()) errors.title = "Vui lòng nhập tiêu đề";
   if (!state.description.trim()) errors.description = "Vui lòng nhập mô tả";
 
@@ -165,7 +159,6 @@ export const toCreatePostInput = (state: EstateFormState): CreatePostInput => ({
   numberOfBedrooms: state.numberOfBedrooms ?? 0,
   numberOfBathrooms: state.numberOfBathrooms ?? 0,
   propertyType: state.propertyType as PropertyType,
-  legalStatus: state.legalStatus.trim(),
   isNegotiable: state.isNegotiable,
   images: state.images.length ? state.images : undefined,
   redBookImages: state.redBookImages,
@@ -196,7 +189,6 @@ export const toUpdatePostInput = (state: EstateFormState) => ({
   numberOfBedrooms: state.numberOfBedrooms ?? 0,
   numberOfBathrooms: state.numberOfBathrooms ?? 0,
   propertyType: state.propertyType as PropertyType,
-  legalStatus: state.legalStatus.trim(),
   isNegotiable: state.isNegotiable,
   images: state.images.length ? state.images : undefined,
   redBookImages: state.redBookImages,
