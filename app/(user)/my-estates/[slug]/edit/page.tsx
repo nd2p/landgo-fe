@@ -205,7 +205,8 @@ export default function EditEstatePage() {
 
     const validationErrors = validateEstateForm(nextValues, { isEdit: true });
     if (mapUrl && !parsedLatLng) {
-      validationErrors.mapUrl = "Link Google Maps không hợp lệ hoặc không chứa tọa độ";
+      validationErrors.mapUrl =
+        "Link Google Maps không hợp lệ hoặc không chứa tọa độ";
     }
 
     if (Object.keys(validationErrors).length > 0) {

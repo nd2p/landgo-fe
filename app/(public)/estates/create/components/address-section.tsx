@@ -124,7 +124,9 @@ export default function AddressSection({
             onChange={(event) => onFieldChange("mapUrl", event.target.value)}
             placeholder="Dán link Google Maps để lấy tọa độ (tuỳ chọn)"
           />
-          {errors.mapUrl && <p className="text-red-500 text-sm">{errors.mapUrl}</p>}
+          {errors.mapUrl && (
+            <p className="text-red-500 text-sm">{errors.mapUrl}</p>
+          )}
 
           {hasCoordinates && mapPreviewUrl && (
             <div className="space-y-2">

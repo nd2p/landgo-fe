@@ -39,7 +39,8 @@ export default function CreatePostPage() {
     createEstateFormDefaults(),
   );
   const [errors, setErrors] = useState<EstateFormErrors>({});
-  const [isValidatingRedBookImages, setIsValidatingRedBookImages] = useState(false);
+  const [isValidatingRedBookImages, setIsValidatingRedBookImages] =
+    useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const clearFieldError = (field: keyof EstateFormErrors) => {
@@ -87,7 +88,9 @@ export default function CreatePostPage() {
 
   useEffect(() => {
     if (!values.province) return;
-    getDistrictsService(values.province).then(setDistricts).catch(console.error);
+    getDistrictsService(values.province)
+      .then(setDistricts)
+      .catch(console.error);
   }, [values.province]);
 
   useEffect(() => {
@@ -137,7 +140,8 @@ export default function CreatePostPage() {
 
     const validationErrors = validateEstateForm(nextValues);
     if (mapUrl && !parsedLatLng) {
-      validationErrors.mapUrl = "Link Google Maps không hợp lệ hoặc không chứa tọa độ";
+      validationErrors.mapUrl =
+        "Link Google Maps không hợp lệ hoặc không chứa tọa độ";
     }
 
     if (Object.keys(validationErrors).length > 0) {
@@ -164,10 +168,14 @@ export default function CreatePostPage() {
     try {
       if (values.redBookImages.length > 0) {
         setIsValidatingRedBookImages(true);
-        const validationResult = await validateRedBookImagesWithGemini(values.redBookImages);
+        const validationResult = await validateRedBookImagesWithGemini(
+          values.redBookImages,
+        );
 
         if (!validationResult.valid) {
-          const invalidNames = validationResult.invalidFiles.map((file) => file.fileName).join(", ");
+          const invalidNames = validationResult.invalidFiles
+            .map((file) => file.fileName)
+            .join(", ");
           setErrors((prev) => ({
             ...prev,
             redBookImages: `Ảnh sổ đỏ không hợp lệ: ${invalidNames}`,
@@ -180,7 +188,12 @@ export default function CreatePostPage() {
       const response = await createPostsApi(payload);
       const createdPostId = response.data?.data?._id;
 
-      if (values.isPinned && values.pinLevel && values.pinDurationType && createdPostId) {
+      if (
+        values.isPinned &&
+        values.pinLevel &&
+        values.pinDurationType &&
+        createdPostId
+      ) {
         try {
           const payment = await createSepayPayment({
             postId: createdPostId,
@@ -211,7 +224,9 @@ export default function CreatePostPage() {
       const validationResult = await validateRedBookImagesWithGemini(files);
 
       if (!validationResult.valid) {
-        const invalidNames = validationResult.invalidFiles.map((file) => file.fileName).join(", ");
+        const invalidNames = validationResult.invalidFiles
+          .map((file) => file.fileName)
+          .join(", ");
         const message = `Ảnh sổ đỏ không hợp lệ: ${invalidNames}`;
         setErrors((prev) => ({ ...prev, redBookImages: message }));
         return message;
@@ -221,7 +236,9 @@ export default function CreatePostPage() {
       return null;
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Không thể xác thực ảnh sổ đỏ. Vui lòng thử lại.";
+        error instanceof Error
+          ? error.message
+          : "Không thể xác thực ảnh sổ đỏ. Vui lòng thử lại.";
       setErrors((prev) => ({ ...prev, redBookImages: message }));
       return message;
     } finally {
@@ -287,7 +304,10 @@ export default function CreatePostPage() {
             >
               Huy
             </Button>
-            <Button type="submit" disabled={isSubmitting || isValidatingRedBookImages}>
+            <Button
+              type="submit"
+              disabled={isSubmitting || isValidatingRedBookImages}
+            >
               {isSubmitting ? "Đang xử lý..." : "Đăng tin"}
             </Button>
           </div>

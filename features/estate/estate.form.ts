@@ -1,4 +1,8 @@
-import { CreatePostInput, PaymentDurationType, PropertyType } from "./estate.types";
+import {
+  CreatePostInput,
+  PaymentDurationType,
+  PropertyType,
+} from "./estate.types";
 
 export type EstateFormState = {
   title: string;
@@ -84,9 +88,8 @@ export const parseNumberInput = (value: string): number | null => {
 
 type LatLng = { lat: number; lng: number };
 
-const isValidLatLng = ({ lat, lng }: LatLng) => (
-  lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
-);
+const isValidLatLng = ({ lat, lng }: LatLng) =>
+  lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
 
 const parsePair = (text: string): LatLng | null => {
   const match = text.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
