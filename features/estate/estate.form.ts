@@ -9,6 +9,7 @@ export type EstateFormState = {
   district: string;
   ward: string;
   addressDetail: string;
+  mapUrl: string;
   lat: number | null;
   lng: number | null;
   frontage: number | null;
@@ -50,6 +51,7 @@ export const createEstateFormDefaults = (
   district: "",
   ward: "",
   addressDetail: "",
+  mapUrl: "",
   lat: 0,
   lng: 0,
   frontage: null,
@@ -78,6 +80,55 @@ export const parseNumberInput = (value: string): number | null => {
   if (value.trim() === "") return null;
   const parsed = Number(value);
   return Number.isNaN(parsed) ? null : parsed;
+};
+
+type LatLng = { lat: number; lng: number };
+
+const isValidLatLng = ({ lat, lng }: LatLng) => (
+  lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+);
+
+const parsePair = (text: string): LatLng | null => {
+  const match = text.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+  if (!match) return null;
+
+  const lat = Number(match[1]);
+  const lng = Number(match[2]);
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+
+  const candidate = { lat, lng };
+  return isValidLatLng(candidate) ? candidate : null;
+};
+
+export const extractLatLngFromMapInput = (input: string): LatLng | null => {
+  const raw = input.trim();
+  if (!raw) return null;
+
+  const direct = parsePair(raw);
+  if (direct) return direct;
+
+  let decoded = raw;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    decoded = raw;
+  }
+
+  const fromAt = parsePair(decoded.match(/@([^/?]+)/)?.[1] ?? "");
+  if (fromAt) return fromAt;
+
+  const queryCandidates = [
+    decoded.match(/[?&](?:q|query|ll)=([^&#]+)/i)?.[1],
+    decoded.match(/[?&](?:destination|center)=([^&#]+)/i)?.[1],
+  ];
+
+  for (const candidate of queryCandidates) {
+    if (!candidate) continue;
+    const parsed = parsePair(candidate);
+    if (parsed) return parsed;
+  }
+
+  return null;
 };
 export const validateEstateForm = (
   state: EstateFormState,

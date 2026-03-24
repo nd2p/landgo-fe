@@ -9,6 +9,7 @@ import {
   type EstateFormErrors,
   type EstateFormState,
   type FieldChangeHandler,
+  extractLatLngFromMapInput,
   toCreatePostInput,
   validateEstateForm,
 } from "@/features/estate/estate.form";
@@ -107,14 +108,55 @@ export default function CreatePostPage() {
       .catch(console.error);
   }, []);
 
+  useEffect(() => {
+    const mapUrl = values.mapUrl.trim();
+    if (!mapUrl) return;
+
+    const parsedLatLng = extractLatLngFromMapInput(mapUrl);
+    if (!parsedLatLng) return;
+
+    if (values.lat === parsedLatLng.lat && values.lng === parsedLatLng.lng) {
+      return;
+    }
+
+    setValues((prev) => ({
+      ...prev,
+      lat: parsedLatLng.lat,
+      lng: parsedLatLng.lng,
+    }));
+    clearFieldError("mapUrl");
+  }, [values.mapUrl, values.lat, values.lng]);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (isSubmitting) return;
 
-    const validationErrors = validateEstateForm(values);
+    let nextValues = values;
+    const mapUrl = values.mapUrl.trim();
+    const parsedLatLng = mapUrl ? extractLatLngFromMapInput(mapUrl) : null;
+
+    const validationErrors = validateEstateForm(nextValues);
+    if (mapUrl && !parsedLatLng) {
+      validationErrors.mapUrl = "Link Google Maps không hợp lệ hoặc không chứa tọa độ";
+    }
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
+    }
+
+    if (parsedLatLng) {
+      nextValues = {
+        ...values,
+        lat: parsedLatLng.lat,
+        lng: parsedLatLng.lng,
+      };
+
+      setValues((prev) => ({
+        ...prev,
+        lat: parsedLatLng.lat,
+        lng: parsedLatLng.lng,
+      }));
     }
 
     setIsSubmitting(true);
@@ -134,7 +176,7 @@ export default function CreatePostPage() {
         }
       }
 
-      const payload = toCreatePostInput(values);
+      const payload = toCreatePostInput(nextValues);
       const response = await createPostsApi(payload);
       const createdPostId = response.data?.data?._id;
 
@@ -200,6 +242,7 @@ export default function CreatePostPage() {
             onFieldChange={onFieldChange}
             onProvinceChange={handleProvinceChange}
             onDistrictChange={handleDistrictChange}
+            showMapUrlInput
           />
 
           <MainInfoSection

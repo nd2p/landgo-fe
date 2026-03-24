@@ -6,6 +6,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import type {
   EstateFormErrors,
   EstateFormState,
@@ -22,6 +23,7 @@ type Props = {
   onFieldChange: FieldChangeHandler;
   onProvinceChange: (value: string) => void;
   onDistrictChange: (value: string) => void;
+  showMapUrlInput?: boolean;
 };
 
 export default function AddressSection({
@@ -33,7 +35,24 @@ export default function AddressSection({
   onFieldChange,
   onProvinceChange,
   onDistrictChange,
+  showMapUrlInput = false,
 }: Props) {
+  const hasCoordinates =
+    typeof values.lat === "number" &&
+    typeof values.lng === "number" &&
+    values.lat !== 0 &&
+    values.lng !== 0;
+
+  const mapPreviewUrl = hasCoordinates
+    ? `https://maps.google.com/maps?q=${values.lat},${values.lng}&z=15&output=embed`
+    : null;
+
+  const fullMapUrl = values.mapUrl.trim()
+    ? values.mapUrl.trim()
+    : hasCoordinates
+      ? `https://www.google.com/maps/@${values.lat},${values.lng},15z`
+      : "";
+
   return (
     <section className="bg-white p-6 rounded-xl shadow space-y-4">
       <h2 className="text-lg font-semibold">
@@ -96,6 +115,34 @@ export default function AddressSection({
       />
       {errors.addressDetail && (
         <p className="text-red-500 text-sm">{errors.addressDetail}</p>
+      )}
+
+      {showMapUrlInput && (
+        <>
+          <Input
+            value={values.mapUrl}
+            onChange={(event) => onFieldChange("mapUrl", event.target.value)}
+            placeholder="Dán link Google Maps để lấy tọa độ (tuỳ chọn)"
+          />
+          {errors.mapUrl && <p className="text-red-500 text-sm">{errors.mapUrl}</p>}
+
+          {hasCoordinates && mapPreviewUrl && (
+            <div className="space-y-2">
+              <p className="text-sm text-slate-600">
+                Tọa độ: {values.lat}, {values.lng}
+              </p>
+              <div className="h-64 w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                <iframe
+                  title="Google Map Preview"
+                  src={mapPreviewUrl}
+                  className="h-full w-full"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </div>
+            </div>
+          )}
+        </>
       )}
     </section>
   );

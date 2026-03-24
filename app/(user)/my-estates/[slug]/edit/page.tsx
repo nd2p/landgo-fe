@@ -9,6 +9,7 @@ import {
   type EstateFormErrors,
   type EstateFormState,
   type FieldChangeHandler,
+  extractLatLngFromMapInput,
   toUpdatePostInput,
   validateEstateForm,
 } from "@/features/estate/estate.form";
@@ -115,6 +116,25 @@ export default function EditEstatePage() {
   }, []);
 
   useEffect(() => {
+    const mapUrl = values.mapUrl.trim();
+    if (!mapUrl) return;
+
+    const parsedLatLng = extractLatLngFromMapInput(mapUrl);
+    if (!parsedLatLng) return;
+
+    if (values.lat === parsedLatLng.lat && values.lng === parsedLatLng.lng) {
+      return;
+    }
+
+    setValues((prev) => ({
+      ...prev,
+      lat: parsedLatLng.lat,
+      lng: parsedLatLng.lng,
+    }));
+    clearFieldError("mapUrl");
+  }, [values.mapUrl, values.lat, values.lng]);
+
+  useEffect(() => {
     if (!slug) return;
 
     const loadPost = async () => {
@@ -139,6 +159,10 @@ export default function EditEstatePage() {
             district: estate.district?._id ?? "",
             ward: estate.ward?._id ?? "",
             addressDetail: estate.addressDetail ?? "",
+            mapUrl:
+              estate.lat && estate.lng
+                ? `https://www.google.com/maps/@${estate.lat},${estate.lng},15z`
+                : "",
             frontage: estate.frontage ?? null,
             entryWidth: estate.entryWidth ?? null,
             direction: estate.direction ?? "",
@@ -175,16 +199,38 @@ export default function EditEstatePage() {
     event.preventDefault();
     if (isSubmitting || !postId) return;
 
-    const validationErrors = validateEstateForm(values, { isEdit: true });
+    let nextValues = values;
+    const mapUrl = values.mapUrl.trim();
+    const parsedLatLng = mapUrl ? extractLatLngFromMapInput(mapUrl) : null;
+
+    const validationErrors = validateEstateForm(nextValues, { isEdit: true });
+    if (mapUrl && !parsedLatLng) {
+      validationErrors.mapUrl = "Link Google Maps không hợp lệ hoặc không chứa tọa độ";
+    }
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
 
+    if (parsedLatLng) {
+      nextValues = {
+        ...values,
+        lat: parsedLatLng.lat,
+        lng: parsedLatLng.lng,
+      };
+
+      setValues((prev) => ({
+        ...prev,
+        lat: parsedLatLng.lat,
+        lng: parsedLatLng.lng,
+      }));
+    }
+
     try {
       setIsSubmitting(true);
       setError(null);
-      const payload = toUpdatePostInput(values);
+      const payload = toUpdatePostInput(nextValues);
       await updatePost(postId, payload);
       router.push("/my-estates");
     } catch (err) {
@@ -222,6 +268,7 @@ export default function EditEstatePage() {
             onFieldChange={onFieldChange}
             onProvinceChange={handleProvinceChange}
             onDistrictChange={handleDistrictChange}
+            showMapUrlInput
           />
 
           <MainInfoSection

@@ -1,4 +1,4 @@
-import type { Estate } from "@/features/estate/estate.types";
+import { Button } from "@/components/ui/button";
 
 interface EstateMapViewProps {
   address: string;
@@ -16,10 +16,16 @@ export default function EstateMapView({ address, lat, lng }: EstateMapViewProps)
       : encodeURIComponent("Vietnam");
   
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+  const hasCoordinates = lat !== 0 && lng !== 0;
+  const fullMapUrl = hasCoordinates
+    ? `https://www.google.com/maps/@${lat},${lng},15z`
+    : address
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+      : "https://www.google.com/maps";
   
   return (
     <div className="flex flex-col gap-6 font-sans">
-      <div className="w-full h-[400px] rounded-xl overflow-hidden bg-muted border border-border mt-2 shadow-inner">
+      <div className="mt-2 h-100 w-full overflow-hidden rounded-xl border border-border bg-muted shadow-inner">
         {apiKey ? (
           <iframe
             width="100%"
