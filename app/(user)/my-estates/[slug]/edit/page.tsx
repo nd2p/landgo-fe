@@ -9,6 +9,7 @@ import {
   type EstateFormErrors,
   type EstateFormState,
   type FieldChangeHandler,
+  extractLatLngFromMapInput,
   toUpdatePostInput,
   validateEstateForm,
 } from "@/features/estate/estate.form";
@@ -43,6 +44,7 @@ export default function EditEstatePage() {
   );
   const [errors, setErrors] = useState<EstateFormErrors>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const clearFieldError = (field: keyof EstateFormErrors) => {
@@ -114,6 +116,25 @@ export default function EditEstatePage() {
   }, []);
 
   useEffect(() => {
+    const mapUrl = values.mapUrl.trim();
+    if (!mapUrl) return;
+
+    const parsedLatLng = extractLatLngFromMapInput(mapUrl);
+    if (!parsedLatLng) return;
+
+    if (values.lat === parsedLatLng.lat && values.lng === parsedLatLng.lng) {
+      return;
+    }
+
+    setValues((prev) => ({
+      ...prev,
+      lat: parsedLatLng.lat,
+      lng: parsedLatLng.lng,
+    }));
+    clearFieldError("mapUrl");
+  }, [values.mapUrl, values.lat, values.lng]);
+
+  useEffect(() => {
     if (!slug) return;
 
     const loadPost = async () => {
@@ -138,16 +159,19 @@ export default function EditEstatePage() {
             district: estate.district?._id ?? "",
             ward: estate.ward?._id ?? "",
             addressDetail: estate.addressDetail ?? "",
+            mapUrl:
+              estate.lat && estate.lng
+                ? `https://www.google.com/maps/@${estate.lat},${estate.lng},15z`
+                : "",
             frontage: estate.frontage ?? null,
             entryWidth: estate.entryWidth ?? null,
             direction: estate.direction ?? "",
             floorNumber: estate.floorNumber ?? null,
             lat: estate.lat ?? 0,
             lng: estate.lng ?? 0,
-            numberOfBedrooms: estate.numberOfBedrooms ?? null,
-            numberOfBathrooms: estate.numberOfBathrooms ?? null,
+            numberOfBedrooms: estate.numberOfBedrooms ?? 0,
+            numberOfBathrooms: estate.numberOfBathrooms ?? 0,
             propertyType: estate.propertyType as PropertyType,
-            legalStatus: estate.legalStatus ?? "",
             isNegotiable: Boolean(estate.isNegotiable),
             isPinned: Boolean(estate.isPinned),
             pinLevel: normalizedPinLevel,
@@ -173,24 +197,47 @@ export default function EditEstatePage() {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!postId) return;
+    if (isSubmitting || !postId) return;
 
-    const validationErrors = validateEstateForm(values, { isEdit: true });
+    let nextValues = values;
+    const mapUrl = values.mapUrl.trim();
+    const parsedLatLng = mapUrl ? extractLatLngFromMapInput(mapUrl) : null;
+
+    const validationErrors = validateEstateForm(nextValues, { isEdit: true });
+    if (mapUrl && !parsedLatLng) {
+      validationErrors.mapUrl =
+        "Link Google Maps không hợp lệ hoặc không chứa tọa độ";
+    }
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
 
+    if (parsedLatLng) {
+      nextValues = {
+        ...values,
+        lat: parsedLatLng.lat,
+        lng: parsedLatLng.lng,
+      };
+
+      setValues((prev) => ({
+        ...prev,
+        lat: parsedLatLng.lat,
+        lng: parsedLatLng.lng,
+      }));
+    }
+
     try {
-      setIsLoading(true);
+      setIsSubmitting(true);
       setError(null);
-      const payload = toUpdatePostInput(values);
+      const payload = toUpdatePostInput(nextValues);
       await updatePost(postId, payload);
       router.push("/my-estates");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update post");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -222,6 +269,7 @@ export default function EditEstatePage() {
             onFieldChange={onFieldChange}
             onProvinceChange={handleProvinceChange}
             onDistrictChange={handleDistrictChange}
+            showMapUrlInput
           />
 
           <MainInfoSection
@@ -235,7 +283,29 @@ export default function EditEstatePage() {
             values={values}
             errors={errors}
             onFieldChange={onFieldChange}
+            disableRedBookUpload
+            isUpdateScreen={true}
           />
+
+          {values.existingRedBookImages.length > 0 && (
+            <section className="bg-white p-6 rounded-xl shadow space-y-4">
+              <h2 className="text-lg font-semibold">Ảnh sổ đỏ hiện tại</h2>
+              <p className="text-sm text-muted-foreground">
+                Ảnh sổ đỏ chỉ được xem, không thể chỉnh sửa khi cập nhật tin.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {values.existingRedBookImages.map((url, index) => (
+                  <div key={`${url}-${index}`}>
+                    <img
+                      src={url}
+                      alt="Anh so do"
+                      className="w-24 h-24 object-cover rounded-lg border"
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           <ContactSection
             name={values.name}
@@ -243,18 +313,21 @@ export default function EditEstatePage() {
             phone={values.phone}
           />
 
+          <ContentSection
+            values={values}
+            errors={errors}
+            onFieldChange={onFieldChange}
+          />
+
           {values.existingImages.length > 0 && (
             <section className="bg-white p-6 rounded-xl shadow space-y-4">
-              <h2 className="text-lg font-semibold">Ảnh hiện tại</h2>
-              <p className="text-sm text-muted-foreground">
-                Nhấn vào nút X để xóa ảnh khỏi tin đăng.
-              </p>
+              <h2 className="text-lg font-semibold">Ảnh bài viết hiện tại</h2>
               <div className="flex flex-wrap gap-3">
                 {values.existingImages.map((url, index) => (
                   <div key={`${url}-${index}`} className="relative">
                     <img
                       src={url}
-                      alt="Ảnh bài viết"
+                      alt="Anh bai viet"
                       className="w-24 h-24 object-cover rounded-lg border"
                     />
                     <Button
@@ -278,63 +351,18 @@ export default function EditEstatePage() {
             </section>
           )}
 
-          {values.existingRedBookImages.length > 0 && (
-            <section className="bg-white p-6 rounded-xl shadow space-y-4">
-              <h2 className="text-lg font-semibold">Ảnh sổ đỏ hiện tại</h2>
-              <p className="text-sm text-muted-foreground">
-                Nhấn vào nút X để xóa ảnh sổ đỏ khỏi tin đăng.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                {values.existingRedBookImages.map((url, index) => (
-                  <div key={`${url}-${index}`} className="relative">
-                    <img
-                      src={url}
-                      alt="Ảnh sổ đỏ"
-                      className="w-24 h-24 object-cover rounded-lg border"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      className="absolute -top-2 -right-2 rounded-full px-2 py-1 text-xs"
-                      onClick={() =>
-                        setValues((prev) => ({
-                          ...prev,
-                          existingRedBookImages:
-                            prev.existingRedBookImages.filter(
-                              (_, i) => i !== index,
-                            ),
-                        }))
-                      }
-                    >
-                      X
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          <ContentSection
-            values={values}
-            errors={errors}
-            onFieldChange={onFieldChange}
-          />
-
-          <PinSection
-            values={values}
-            errors={errors}
-            onFieldChange={onFieldChange}
-          />
-
           <div className="flex justify-end gap-4">
             <Button
               variant="outline"
               type="button"
               onClick={() => router.back()}
+              disabled={isSubmitting}
             >
               Hủy
             </Button>
-            <Button type="submit">Lưu thay đổi</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
+            </Button>
           </div>
         </form>
       </main>

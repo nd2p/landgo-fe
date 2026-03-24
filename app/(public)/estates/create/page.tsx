@@ -9,9 +9,11 @@ import {
   type EstateFormErrors,
   type EstateFormState,
   type FieldChangeHandler,
+  extractLatLngFromMapInput,
   toCreatePostInput,
   validateEstateForm,
 } from "@/features/estate/estate.form";
+import { validateRedBookImagesWithGemini } from "@/features/estate/red-book-validation.service";
 import { PropertyType } from "@/features/estate/estate.types";
 import {
   getDistrictsService,
@@ -37,6 +39,9 @@ export default function CreatePostPage() {
     createEstateFormDefaults(),
   );
   const [errors, setErrors] = useState<EstateFormErrors>({});
+  const [isValidatingRedBookImages, setIsValidatingRedBookImages] =
+    useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const clearFieldError = (field: keyof EstateFormErrors) => {
     setErrors((prev) => {
@@ -83,7 +88,9 @@ export default function CreatePostPage() {
 
   useEffect(() => {
     if (!values.province) return;
-    getDistrictsService(values.province).then(setDistricts).catch(console.error);
+    getDistrictsService(values.province)
+      .then(setDistricts)
+      .catch(console.error);
   }, [values.province]);
 
   useEffect(() => {
@@ -104,25 +111,89 @@ export default function CreatePostPage() {
       .catch(console.error);
   }, []);
 
+  useEffect(() => {
+    const mapUrl = values.mapUrl.trim();
+    if (!mapUrl) return;
+
+    const parsedLatLng = extractLatLngFromMapInput(mapUrl);
+    if (!parsedLatLng) return;
+
+    if (values.lat === parsedLatLng.lat && values.lng === parsedLatLng.lng) {
+      return;
+    }
+
+    setValues((prev) => ({
+      ...prev,
+      lat: parsedLatLng.lat,
+      lng: parsedLatLng.lng,
+    }));
+    clearFieldError("mapUrl");
+  }, [values.mapUrl, values.lat, values.lng]);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const validationErrors = validateEstateForm(values);
+    if (isSubmitting) return;
+
+    let nextValues = values;
+    const mapUrl = values.mapUrl.trim();
+    const parsedLatLng = mapUrl ? extractLatLngFromMapInput(mapUrl) : null;
+
+    const validationErrors = validateEstateForm(nextValues);
+    if (mapUrl && !parsedLatLng) {
+      validationErrors.mapUrl =
+        "Link Google Maps không hợp lệ hoặc không chứa tọa độ";
+    }
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
 
+    if (parsedLatLng) {
+      nextValues = {
+        ...values,
+        lat: parsedLatLng.lat,
+        lng: parsedLatLng.lng,
+      };
+
+      setValues((prev) => ({
+        ...prev,
+        lat: parsedLatLng.lat,
+        lng: parsedLatLng.lng,
+      }));
+    }
+
+    setIsSubmitting(true);
+
     try {
-      const payload = toCreatePostInput(values);
+      if (values.redBookImages.length > 0) {
+        setIsValidatingRedBookImages(true);
+        const validationResult = await validateRedBookImagesWithGemini(
+          values.redBookImages,
+        );
+
+        if (!validationResult.valid) {
+          const invalidNames = validationResult.invalidFiles
+            .map((file) => file.fileName)
+            .join(", ");
+          setErrors((prev) => ({
+            ...prev,
+            redBookImages: `Ảnh sổ đỏ không hợp lệ: ${invalidNames}`,
+          }));
+          return;
+        }
+      }
+
+      const payload = toCreatePostInput(nextValues);
       const response = await createPostsApi(payload);
       const createdPostId = response.data?.data?._id;
 
-      if (values.isPinned && values.pinLevel && values.pinDurationType && createdPostId) {
-        console.log("Creating payment for pinned post:", {
-          postId: createdPostId,
-          pinLevel: values.pinLevel,
-          pinDurationType: values.pinDurationType,
-        });
+      if (
+        values.isPinned &&
+        values.pinLevel &&
+        values.pinDurationType &&
+        createdPostId
+      ) {
         try {
           const payment = await createSepayPayment({
             postId: createdPostId,
@@ -141,6 +212,37 @@ export default function CreatePostPage() {
       console.error("Create post error:", error);
       console.log("images:", values.images);
       console.log("redBookImages:", values.redBookImages);
+    } finally {
+      setIsSubmitting(false);
+      setIsValidatingRedBookImages(false);
+    }
+  };
+
+  const handleRedBookFilesSelected = async (files: File[]) => {
+    try {
+      setIsValidatingRedBookImages(true);
+      const validationResult = await validateRedBookImagesWithGemini(files);
+
+      if (!validationResult.valid) {
+        const invalidNames = validationResult.invalidFiles
+          .map((file) => file.fileName)
+          .join(", ");
+        const message = `Ảnh sổ đỏ không hợp lệ: ${invalidNames}`;
+        setErrors((prev) => ({ ...prev, redBookImages: message }));
+        return message;
+      }
+
+      clearFieldError("redBookImages");
+      return null;
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Không thể xác thực ảnh sổ đỏ. Vui lòng thử lại.";
+      setErrors((prev) => ({ ...prev, redBookImages: message }));
+      return message;
+    } finally {
+      setIsValidatingRedBookImages(false);
     }
   };
 
@@ -157,6 +259,7 @@ export default function CreatePostPage() {
             onFieldChange={onFieldChange}
             onProvinceChange={handleProvinceChange}
             onDistrictChange={handleDistrictChange}
+            showMapUrlInput
           />
 
           <MainInfoSection
@@ -170,6 +273,8 @@ export default function CreatePostPage() {
             values={values}
             errors={errors}
             onFieldChange={onFieldChange}
+            onRedBookFilesSelected={handleRedBookFilesSelected}
+            isValidatingRedBookImages={isValidatingRedBookImages}
           />
 
           <ContactSection
@@ -191,10 +296,20 @@ export default function CreatePostPage() {
           />
 
           <div className="flex justify-end gap-4">
-            <Button variant="outline" type="button" onClick={() => router.back()}>
-              Hủy
+            <Button
+              variant="outline"
+              type="button"
+              onClick={() => router.back()}
+              disabled={isSubmitting}
+            >
+              Huy
             </Button>
-            <Button type="submit">Đăng tin</Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting || isValidatingRedBookImages}
+            >
+              {isSubmitting ? "Đang xử lý..." : "Đăng tin"}
+            </Button>
           </div>
         </form>
       </main>

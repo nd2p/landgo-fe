@@ -1,4 +1,8 @@
-import { CreatePostInput, PaymentDurationType, PropertyType } from "./estate.types";
+import {
+  CreatePostInput,
+  PaymentDurationType,
+  PropertyType,
+} from "./estate.types";
 
 export type EstateFormState = {
   title: string;
@@ -9,16 +13,16 @@ export type EstateFormState = {
   district: string;
   ward: string;
   addressDetail: string;
+  mapUrl: string;
   lat: number | null;
   lng: number | null;
   frontage: number | null;
   entryWidth: number | null;
   direction: string;
   floorNumber: number | null;
-  numberOfBedrooms: number | null;
-  numberOfBathrooms: number | null;
+  numberOfBedrooms: number | 0;
+  numberOfBathrooms: number | 0;
   propertyType: PropertyType | "";
-  legalStatus: string;
   isNegotiable: boolean;
   images: File[];
   redBookImages: File[];
@@ -51,16 +55,16 @@ export const createEstateFormDefaults = (
   district: "",
   ward: "",
   addressDetail: "",
+  mapUrl: "",
   lat: 0,
   lng: 0,
   frontage: null,
   entryWidth: null,
   direction: "",
   floorNumber: null,
-  numberOfBedrooms: null,
-  numberOfBathrooms: null,
+  numberOfBedrooms: 0,
+  numberOfBathrooms: 0,
   propertyType: "",
-  legalStatus: "",
   isNegotiable: false,
   images: [],
   redBookImages: [],
@@ -80,6 +84,54 @@ export const parseNumberInput = (value: string): number | null => {
   if (value.trim() === "") return null;
   const parsed = Number(value);
   return Number.isNaN(parsed) ? null : parsed;
+};
+
+type LatLng = { lat: number; lng: number };
+
+const isValidLatLng = ({ lat, lng }: LatLng) =>
+  lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+
+const parsePair = (text: string): LatLng | null => {
+  const match = text.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+  if (!match) return null;
+
+  const lat = Number(match[1]);
+  const lng = Number(match[2]);
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+
+  const candidate = { lat, lng };
+  return isValidLatLng(candidate) ? candidate : null;
+};
+
+export const extractLatLngFromMapInput = (input: string): LatLng | null => {
+  const raw = input.trim();
+  if (!raw) return null;
+
+  const direct = parsePair(raw);
+  if (direct) return direct;
+
+  let decoded = raw;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    decoded = raw;
+  }
+
+  const fromAt = parsePair(decoded.match(/@([^/?]+)/)?.[1] ?? "");
+  if (fromAt) return fromAt;
+
+  const queryCandidates = [
+    decoded.match(/[?&](?:q|query|ll)=([^&#]+)/i)?.[1],
+    decoded.match(/[?&](?:destination|center)=([^&#]+)/i)?.[1],
+  ];
+
+  for (const candidate of queryCandidates) {
+    if (!candidate) continue;
+    const parsed = parsePair(candidate);
+    if (parsed) return parsed;
+  }
+
+  return null;
 };
 export const validateEstateForm = (
   state: EstateFormState,
@@ -117,10 +169,6 @@ export const validateEstateForm = (
     errors.numberOfBathrooms = "Vui lòng nhập số phòng tắm";
   } else if (state.numberOfBathrooms < 0) {
     errors.numberOfBathrooms = "Số phòng tắm không hợp lệ";
-  }
-
-  if (!state.legalStatus.trim()) {
-    errors.legalStatus = "Vui lòng nhập tình trạng pháp lý";
   }
 
   if (!state.title.trim()) errors.title = "Vui lòng nhập tiêu đề";
@@ -165,7 +213,6 @@ export const toCreatePostInput = (state: EstateFormState): CreatePostInput => ({
   numberOfBedrooms: state.numberOfBedrooms ?? 0,
   numberOfBathrooms: state.numberOfBathrooms ?? 0,
   propertyType: state.propertyType as PropertyType,
-  legalStatus: state.legalStatus.trim(),
   isNegotiable: state.isNegotiable,
   images: state.images.length ? state.images : undefined,
   redBookImages: state.redBookImages,
@@ -196,7 +243,6 @@ export const toUpdatePostInput = (state: EstateFormState) => ({
   numberOfBedrooms: state.numberOfBedrooms ?? 0,
   numberOfBathrooms: state.numberOfBathrooms ?? 0,
   propertyType: state.propertyType as PropertyType,
-  legalStatus: state.legalStatus.trim(),
   isNegotiable: state.isNegotiable,
   images: state.images.length ? state.images : undefined,
   redBookImages: state.redBookImages,

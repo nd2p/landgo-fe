@@ -1,4 +1,4 @@
-import type { Estate } from "@/features/estate/estate.types";
+import { Button } from "@/components/ui/button";
 
 interface EstateMapViewProps {
   address: string;
@@ -6,20 +6,31 @@ interface EstateMapViewProps {
   lng: number;
 }
 
-export default function EstateMapView({ address, lat, lng }: EstateMapViewProps) {
+export default function EstateMapView({
+  address,
+  lat,
+  lng,
+}: EstateMapViewProps) {
   // If we have actual coordinates, we use them. Otherwise, we fallback to the address.
   // If both are missing, we use a generic location as a final fallback to prevent 'Invalid q parameter' error.
-  const query = (lat && lng && lat !== 0 && lng !== 0)
-    ? `${lat},${lng}`
-    : address
-      ? encodeURIComponent(address)
-      : encodeURIComponent("Vietnam");
-  
+  const query =
+    lat && lng && lat !== 0 && lng !== 0
+      ? `${lat},${lng}`
+      : address
+        ? encodeURIComponent(address)
+        : encodeURIComponent("Vietnam");
+
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
-  
+  const hasCoordinates = lat !== 0 && lng !== 0;
+  const fullMapUrl = hasCoordinates
+    ? `https://www.google.com/maps/@${lat},${lng},15z`
+    : address
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
+      : "https://www.google.com/maps";
+
   return (
     <div className="flex flex-col gap-6 font-sans">
-      <div className="w-full h-[400px] rounded-xl overflow-hidden bg-muted border border-border mt-2 shadow-inner">
+      <div className="mt-2 h-100 w-full overflow-hidden rounded-xl border border-border bg-muted shadow-inner">
         {apiKey ? (
           <iframe
             width="100%"
@@ -34,7 +45,9 @@ export default function EstateMapView({ address, lat, lng }: EstateMapViewProps)
           <div className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-500">
             <div className="text-center px-4">
               <p className="font-semibold">Google Maps API Key Missing</p>
-              <p className="text-sm mt-1">Please add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to your .env file</p>
+              <p className="text-sm mt-1">
+                Please add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to your .env file
+              </p>
             </div>
           </div>
         )}
